@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mundo Pet - Gestão Administrativa V5</title>
+    <title>Mundo Pet - Gestão Administrativa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -92,7 +92,8 @@
     <div id="app-container" class="hidden h-screen flex">
         <aside class="w-64 bg-white border-r p-6 flex flex-col no-print">
             <div class="text-2xl font-black text-blue-600 mb-10 italic">🐾 Mundo Pet</div>
-            <nav id="menu-lateral" class="flex-grow space-y-1"></nav>
+            <nav id="menu-lateral" class="flex-grow space-y-1">
+                </nav>
             <button onclick="location.reload()" class="text-red-500 font-bold p-4 hover:bg-red-50 rounded-xl text-left">Sair</button>
         </aside>
 
@@ -120,21 +121,19 @@
     </div>
 
     <script>
-        const API = 'http://localhost:3000/api';
         let roleAtiva = 'admin';
-        let sessao = null;
-        let filtroPeriodo = 'Mês Atual'; // Estado Global do Filtro de Data
+        let filtroPeriodo = 'Mês Atual'; 
 
-        // Helpers de Data para simular os dias atuais no array dinamicamente
+        // Helpers de Data
         const dtHoje = new Date();
         const dtOntem = new Date(dtHoje); dtOntem.setDate(dtHoje.getDate() - 1);
         const formatDt = (d) => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
 
         // --- ESTADOS DA APLICAÇÃO ---
         let equipe = [
-            {id: 1, nome: "Carlos Silva", cpf: "123.456.789-00", cargo: "admin", status: "Ativo", ultimoAcesso: "Hoje 14:30"},
-            {id: 2, nome: "Roberto Santos", cpf: "987.654.321-11", cargo: "vet", status: "Ativo", ultimoAcesso: "Ontem 10:15"},
-            {id: 3, nome: "Ana Paula", cpf: "444.555.666-77", cargo: "recepcao", status: "Inativo", ultimoAcesso: "10/04/2026"}
+            {id: 1, nome: "Carlos Silva", cpf: "123.456.789-00", cargo: "Administrador", email: "carlos@mundopet.com", status: "Ativo", ultimoAcesso: "Hoje 14:30"},
+            {id: 2, nome: "Roberto Santos", cpf: "987.654.321-11", cargo: "Veterinário", email: "roberto@mundopet.com", status: "Ativo", ultimoAcesso: "Ontem 10:15"},
+            {id: 3, nome: "Ana Paula", cpf: "444.555.666-77", cargo: "Recepção", email: "ana@mundopet.com", status: "Inativo", ultimoAcesso: "10/04/2026"}
         ];
 
         let estoque = [
@@ -142,12 +141,31 @@
             {id: 1, nome: "Anestésico Propofol", lote: "#AF-44", qtd: 2, val: "05/2026"}
         ];
 
-        // Seed com datas relativas para que o filtro funcione hoje
         let transacoes = [
             { id: 1, data: formatDt(dtHoje), desc: "Venda Ração Premium", cat: "Venda de Produtos", valor: 250, tipo: "entrada", metodo: "Cartão de Crédito" },
             { id: 2, data: formatDt(dtHoje), desc: "Compra Material Cirúrgico", cat: "Medicamentos", valor: 1100, tipo: "saida", metodo: "Pix" },
             { id: 3, data: formatDt(dtOntem), desc: "Consulta Pet: Mel", cat: "Serviços", valor: 150, tipo: "entrada", metodo: "Cartão de Débito" }
         ];
+
+        // --- MÁSCARAS E FUNÇÕES AUXILIARES ---
+        function mascaraMoeda(i) {
+            let v = i.value.replace(/\D/g,'');
+            if(v === '') { i.value = ''; return; }
+            v = (v/100).toFixed(2) + '';
+            v = v.replace(".", ",");
+            v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
+            v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
+            i.value = 'R$ ' + v;
+        }
+
+        function mascaraCPF(i) {
+            let v = i.value.replace(/\D/g, "");
+            if (v.length > 11) v = v.substring(0, 11);
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+            i.value = v;
+        }
 
         // --- NAVEGAÇÃO E LOGIN ---
         function irPara(id) {
@@ -169,15 +187,35 @@
         async function processarAssinatura() { irPara('tela-login'); }
 
         async function efetuarLogin() {
+    const email = document.getElementById('login-email').value;
+    const senha = document.getElementById('login-senha').value;
+
+    try {
+        // Faz a chamada para o servidor na porta 8080
+        const res = await fetch('http://localhost:8080/api/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email, senha, role: roleAtiva })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            // Se o login estiver certo, ele executa o que você já tinha:
             irPara('app-container');
-            document.getElementById('clinica-tag').innerText = "CLÍNICA MUNDO PET TESTE";
+            document.getElementById('clinica-tag').innerText = data.user.clinica_nome || "CLÍNICA MUNDO PET";
             montarMenu();
             navegarModulo('financeiro');
+        } else {
+            alert(data.error || "Usuário ou senha incorretos");
         }
+    } catch (e) {
+        alert("Erro: O servidor não está rodando na porta 8080.");
+    }
+}
 
         function montarMenu() {
-            const m = document.getElementById('menu-lateral');
-            m.innerHTML = `
+            document.getElementById('menu-lateral').innerHTML = `
                 <div onclick="navegarModulo('financeiro')" class="sidebar-item" id="m-financeiro">💰 Financeiro</div>
                 <div onclick="navegarModulo('equipe')" class="sidebar-item" id="m-equipe">👥 Equipe</div>
                 <div onclick="navegarModulo('estoque')" class="sidebar-item" id="m-estoque">📦 Estoque</div>
@@ -206,6 +244,7 @@
                     <button onclick="window.print()" class="bg-white border px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-50">📥 Exportar PDF</button>
                 `;
                 atualizarDOMFinanceiro(cont);
+            
             } else if(mod === 'equipe') {
                 tit.innerText = "Recursos Humanos";
                 actions.innerHTML = `<button onclick="abrirModalColaborador()" class="btn-principal px-6 py-2 rounded-xl font-bold">+ Novo Colaborador</button>`;
@@ -213,11 +252,12 @@
                     <div class="mb-6"><input id="busca-equipe" onkeyup="filtrarEquipe()" placeholder="Buscar por nome ou CPF..." class="input-pet !w-full max-w-md"></div>
                     <div class="card">
                         <table>
-                            <thead><tr><th>Nome</th><th>Cargo</th><th>Status</th><th>Último Acesso</th><th>Ações</th></tr></thead>
+                            <thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Status</th><th>Último Acesso</th><th>Ações</th></tr></thead>
                             <tbody id="tabela-equipe-corpo">${renderEquipe(equipe)}</tbody>
                         </table>
                     </div>
                 `;
+            
             } else if(mod === 'estoque') {
                 tit.innerText = "Estoque Estratégico";
                 cont.innerHTML = `
@@ -232,13 +272,111 @@
                         </table>
                     </div>
                 `;
+            
             } else if(mod === 'auditoria') {
                 tit.innerText = "Logs de Auditoria";
                 cont.innerHTML = `<div class="card"><table><thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th></tr></thead><tbody><tr><td>12/04 16:30</td><td>Admin Carlos</td><td>Alterou Status Equipe: Ana Paula</td></tr></tbody></table></div>`;
             }
         }
 
-        // --- LÓGICA FINANCEIRA ---
+        // --- LÓGICA DE EQUIPE (NOVAS IMPLEMENTAÇÕES DE RH) ---
+        function renderEquipe(lista) {
+            if (lista.length === 0) return `<tr><td colspan="6" class="text-center py-4 text-gray-400 italic">Nenhum colaborador encontrado.</td></tr>`;
+            return lista.map(u => `
+                <tr>
+                    <td class="font-bold">${u.nome}<br><span class="text-xs text-gray-400 font-normal">${u.cpf}</span></td>
+                    <td class="uppercase text-xs font-bold">${u.cargo}</td>
+                    <td>${u.email || '-'}</td>
+                    <td>
+                        <span onclick="alternarStatus(${u.id})" class="status-badge ${u.status === 'Ativo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}" title="Clique para mudar">
+                            ${u.status} ↻
+                        </span>
+                    </td>
+                    <td class="text-gray-400 text-xs">${u.ultimoAcesso || '-'}</td>
+                    <td><button onclick="abrirModalColaborador(${u.id})" class="text-blue-500 font-bold underline hover:text-blue-700">Editar</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarEquipe() {
+            const q = document.getElementById('busca-equipe').value.toLowerCase();
+            const filtrados = equipe.filter(u => 
+                u.nome.toLowerCase().includes(q) || 
+                u.cpf.replace(/\D/g,'').includes(q.replace(/\D/g,''))
+            );
+            document.getElementById('tabela-equipe-corpo').innerHTML = renderEquipe(filtrados);
+        }
+
+        function alternarStatus(id) {
+            const idx = equipe.findIndex(e => e.id === id);
+            equipe[idx].status = equipe[idx].status === 'Ativo' ? 'Inativo' : 'Ativo';
+            filtrarEquipe(); // Re-renderiza mantendo o filtro atual da busca
+        }
+
+        function abrirModalColaborador(editId = null) {
+            const u = editId ? equipe.find(x => x.id === editId) : null;
+            document.getElementById('modal-titulo').innerText = editId ? "Editar Colaborador" : "Novo Colaborador";
+            
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Nome Completo</label>
+                        <input id="new-colab-nome" value="${u?.nome || ''}" placeholder="Ex: João da Silva" class="input-pet">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">CPF</label>
+                            <input id="new-colab-cpf" value="${u?.cpf || ''}" onkeyup="mascaraCPF(this)" placeholder="000.000.000-00" class="input-pet">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Cargo</label>
+                            <select id="new-colab-cargo" class="input-pet">
+                                <option value="Administrador" ${u?.cargo === 'Administrador' ? 'selected' : ''}>Administrador</option>
+                                <option value="Veterinário" ${u?.cargo === 'Veterinário' ? 'selected' : ''}>Veterinário</option>
+                                <option value="Recepção" ${u?.cargo === 'Recepção' ? 'selected' : ''}>Recepção</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail Institucional</label>
+                        <input id="new-colab-email" value="${u?.email || ''}" type="email" placeholder="nome@mundopet.com" class="input-pet">
+                    </div>
+                    ${!u ? `
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Senha Provisória</label>
+                        <input id="new-colab-senha" type="password" placeholder="••••••••" class="input-pet">
+                    </div>` : ''}
+                </div>
+            `;
+
+            document.getElementById('modal-confirmar').onclick = () => {
+                const dados = {
+                    nome: document.getElementById('new-colab-nome').value,
+                    cpf: document.getElementById('new-colab-cpf').value,
+                    cargo: document.getElementById('new-colab-cargo').value,
+                    email: document.getElementById('new-colab-email').value
+                };
+
+                if (!dados.nome || !dados.cpf || !dados.email) return alert("Preencha nome, CPF e email!");
+
+                if(editId) {
+                    Object.assign(u, dados);
+                } else {
+                    equipe.push({
+                        id: Date.now(),
+                        ...dados,
+                        status: 'Ativo',
+                        ultimoAcesso: 'Nunca'
+                    });
+                }
+                
+                fecharModal();
+                navegarModulo('equipe'); // Recarrega a tela de equipe
+            };
+            document.getElementById('modal-container').style.display = 'flex';
+        }
+
+        // --- LÓGICA FINANCEIRA (V5) ---
         function mudarFiltroPeriodo(valor) {
             filtroPeriodo = valor;
             atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
@@ -312,16 +450,6 @@
             }
         }
 
-        function mascaraMoeda(i) {
-            let v = i.value.replace(/\D/g,'');
-            if(v === '') { i.value = ''; return; }
-            v = (v/100).toFixed(2) + '';
-            v = v.replace(".", ",");
-            v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
-            v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
-            i.value = 'R$ ' + v;
-        }
-
         function atualizarEstiloBotaoTransacao() {
             const tipo = document.getElementById('new-trans-tipo').value;
             const btn = document.getElementById('modal-confirmar');
@@ -385,7 +513,6 @@
                 </div>
             `;
 
-            // Preencher se for edição
             if(t) {
                 document.getElementById('new-trans-desc').value = t.desc;
                 document.getElementById('new-trans-tipo').value = t.tipo;
@@ -438,31 +565,7 @@
             document.getElementById('modal-container').style.display = 'flex';
         }
 
-        // --- LÓGICA DE EQUIPE (MANTIDA) ---
-        function renderEquipe(lista) {
-            return lista.map(u => `
-                <tr>
-                    <td class="font-bold">${u.nome}<br><span class="text-xs text-gray-400 font-normal">${u.cpf}</span></td>
-                    <td class="uppercase text-xs font-bold">${u.cargo}</td>
-                    <td><span onclick="alternarStatus(${u.id})" class="status-badge ${u.status === 'Ativo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}" title="Clique para mudar">${u.status} ↻</span></td>
-                    <td class="text-gray-400 text-xs">${u.ultimoAcesso}</td>
-                    <td><button onclick="abrirModalEditarColaborador(${u.id})" class="text-blue-500 font-bold underline hover:text-blue-700">Editar</button></td>
-                </tr>
-            `).join('');
-        }
-        function filtrarEquipe() {
-            const q = document.getElementById('busca-equipe').value.toLowerCase();
-            document.getElementById('tabela-equipe-corpo').innerHTML = renderEquipe(equipe.filter(u => u.nome.toLowerCase().includes(q) || u.cpf.includes(q)));
-        }
-        function alternarStatus(id) {
-            const idx = equipe.findIndex(e => e.id === id);
-            equipe[idx].status = equipe[idx].status === 'Ativo' ? 'Inativo' : 'Ativo';
-            filtrarEquipe(); 
-        }
-        function abrirModalColaborador() { /* ... Lógica anterior mantida ... */ fecharModal(); }
-        function abrirModalEditarColaborador(id) { /* ... Lógica anterior mantida ... */ fecharModal(); }
-
-        // --- LÓGICA DE ESTOQUE (MANTIDA) ---
+        // --- LÓGICA DE ESTOQUE (V5) ---
         function renderEstoque() {
             return estoque.map((p, i) => `
                 <tr>
@@ -483,11 +586,14 @@
                 document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
             }
         }
-        function abrirModalEstoque(idx) { /* ... Lógica anterior mantida ... */ fecharModal(); }
+        function abrirModalEstoque(idx) { 
+            // Mock de edição rápida de estoque para o V5
+            alert("Em breve: Edição completa do item " + estoque[idx].nome); 
+        }
 
         function fecharModal() { 
             const btn = document.getElementById('modal-confirmar');
-            btn.style.background = ''; // Limpa as cores customizadas
+            btn.style.background = ''; 
             btn.innerText = 'Salvar';
             document.getElementById('modal-container').style.display = 'none'; 
         }
