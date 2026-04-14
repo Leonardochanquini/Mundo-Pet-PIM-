@@ -226,6 +226,16 @@ app.put('/api/estoque/:id/ajustar', (req, res) => {
     });
 });
 
+app.put('/api/clinica/:id', (req, res) => {
+    const { nome, cnpj, telefone, endereco, logotipo, email_contato, categorias_prontuario, tipos_animais, cargos } = req.body;
+    
+    db.run(`UPDATE clinicas SET nome = ?, cnpj = ?, telefone = ?, endereco = ?, logotipo = ?, email_contato = ?, categorias_prontuario = ?, tipos_animais = ?, cargos = ? WHERE id = ?`, 
+    [nome, cnpj, telefone, endereco, logotipo, email_contato, categorias_prontuario, tipos_animais, cargos, req.params.id], function(err) {
+        if (err) return res.status(500).json({ error: "Erro ao atualizar configurações." });
+        res.json({ success: true, message: "Configurações atualizadas com sucesso!" });
+    });
+});
+
 app.delete('/api/estoque/:id', (req, res) => {
     db.run(`DELETE FROM estoque WHERE id = ?`, [req.params.id], err => {
         if (err) return res.status(500).json({ error: "Erro ao deletar item do estoque." });

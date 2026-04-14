@@ -337,12 +337,19 @@
                     clinicaLogada = { nome: data.user.nome, id: data.user.clinic_id, email: data.user.email, role: data.user.role };
                     
                     try {
-                        // Buscar os dados da clínica para pegar Nome e Logo reais
+                        // Buscar os dados da clínica para pegar Nome, Logo e Configurações
                         const clinicaRes = await fetch(`http://localhost:8080/api/clinica/${clinicaId}`);
                         if(clinicaRes.ok) {
                             const clinicaDados = await clinicaRes.json();
                             clinicaLogada.nomeClinica = clinicaDados.nome;
-                            clinicaLogada.logo = clinicaDados.logo;
+                            clinicaLogada.logo = clinicaDados.logotipo;
+                            clinicaLogada.cnpj = clinicaDados.cnpj || '';
+                            clinicaLogada.telefone = clinicaDados.telefone || '';
+                            clinicaLogada.endereco = clinicaDados.endereco || '';
+                            clinicaLogada.email_contato = clinicaDados.email_contato || '';
+                            clinicaLogada.categorias_prontuario = clinicaDados.categorias_prontuario || '';
+                            clinicaLogada.tipos_animais = clinicaDados.tipos_animais || '';
+                            clinicaLogada.cargos = clinicaDados.cargos || '';
                         }
 
                         const colabRes = await fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`);
@@ -449,38 +456,71 @@
             } else if(mod === 'configuracoes') {
                 tit.innerText = "Configurações do Sistema";
                 cont.innerHTML = `
-                <div class="max-w-2xl">
-                    <div class="card mb-6">
-                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Informações da Clínica</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-xs font-bold text-gray-500 mb-1 block">Nome da Clínica</label>
-                                <input id="config-nome-clinica" value="${clinicaLogada.nomeClinica || ''}" class="input-pet">
+                    <div class="max-w-2xl">
+                        <div class="card mb-6">
+                            <h3 class="text-xl font-bold mb-4 border-b pb-2">Informações da Clínica</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Nome da Clínica</label>
+                                    <input id="config-nome-clinica" value="${clinicaLogada.nomeClinica || ''}" class="input-pet">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">CNPJ</label>
+                                        <input id="config-cnpj-clinica" value="${clinicaLogada.cnpj || ''}" onkeyup="mascaraCNPJ(this)" class="input-pet">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">Telefone</label>
+                                        <input id="config-telefone-clinica" value="${clinicaLogada.telefone || ''}" onkeyup="mascaraTelefone(this)" class="input-pet">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Endereço (Aparecerá em Relatórios/Receitas)</label>
+                                    <input id="config-endereco-clinica" value="${clinicaLogada.endereco || ''}" class="input-pet">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Contato</label>
+                                    <input id="config-email-contato" value="${clinicaLogada.email_contato || ''}" class="input-pet">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">URL do Logotipo (Imagem)</label>
+                                    <input id="config-logo-clinica" value="${clinicaLogada.logo || ''}" placeholder="https://link-da-imagem.com/logo.png" class="input-pet">
+                                    <p class="text-xs text-gray-400 mt-1">Cole o link (URL) de uma imagem hospedada na internet para usar como logo.</p>
+                                </div>
+                                
+                                <h4 class="text-lg font-bold mt-6 mb-2 border-b pb-1">Personalização do Sistema</h4>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Categorias de Prontuários (Separados por vírgula)</label>
+                                    <input id="config-categorias-prontuario" value="${clinicaLogada.categorias_prontuario || ''}" class="input-pet">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Tipos de Animais Atendidos (Separados por vírgula)</label>
+                                    <input id="config-tipos-animais" value="${clinicaLogada.tipos_animais || ''}" class="input-pet">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Cargos da Equipe (Ex: Administrador, Veterinário, Faxineiro)</label>
+                                    <input id="config-cargos" value="${clinicaLogada.cargos || ''}" class="input-pet">
+                                </div>
+                                
+                                <button onclick="salvarConfiguracoesClinica()" class="btn-principal px-6 py-2 rounded-xl font-bold mt-4">Salvar Configurações</button>
                             </div>
-                            <div>
-                                <label class="text-xs font-bold text-gray-500 mb-1 block">URL do Logotipo (Imagem)</label>
-                                <input id="config-logo-clinica" value="${clinicaLogada.logo || ''}" placeholder="https://link-da-imagem.com/logo.png" class="input-pet">
-                                <p class="text-xs text-gray-400 mt-1">Cole o link (URL) de uma imagem hospedada na internet para usar como logo.</p>
+                        </div>
+                        <div class="card">
+                            <h3 class="text-xl font-bold mb-4 border-b pb-2">Segurança da Conta</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Acesso Atual</label>
+                                    <input value="${clinicaLogada.email || ''}" class="input-pet bg-gray-100" disabled>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Nova Senha</label>
+                                    <input id="config-nova-senha" type="password" placeholder="Mínimo 6 caracteres" class="input-pet">
+                                </div>
+                                <button onclick="salvarNovaSenha()" class="btn-principal px-6 py-2 rounded-xl font-bold mt-2">Alterar Senha</button>
                             </div>
-                            <button onclick="salvarConfiguracoesClinica()" class="btn-principal px-6 py-2 rounded-xl font-bold mt-2">Salvar Dados da Clínica</button>
                         </div>
                     </div>
-
-                    <div class="card">
-                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Segurança da Conta</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Acesso Atual</label>
-                                <input value="${clinicaLogada.email || ''}" class="input-pet bg-gray-100 text-gray-500 cursor-not-allowed" disabled>
-                            </div>
-                            <div>
-                                <label class="text-xs font-bold text-gray-500 mb-1 block">Nova Senha</label>
-                                <input id="config-nova-senha" type="password" placeholder="Mínimo de 6 caracteres" class="input-pet">
-                            </div>
-                            <button onclick="salvarNovaSenha()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl font-bold mt-2 transition">Alterar Senha</button>
-                        </div>
-                    </div>
-                </div>`;
+                `;
             }
         }
 
@@ -1114,20 +1154,47 @@
         async function salvarConfiguracoesClinica() {
             const novoNome = document.getElementById('config-nome-clinica').value;
             const novaLogo = document.getElementById('config-logo-clinica').value;
+            const novoCNPJ = document.getElementById('config-cnpj-clinica').value;
+            const novoTelefone = document.getElementById('config-telefone-clinica').value;
+            const novoEndereco = document.getElementById('config-endereco-clinica').value;
+            const novoEmailContato = document.getElementById('config-email-contato').value;
+            const novasCategorias = document.getElementById('config-categorias-prontuario').value;
+            const novosTiposAnimais = document.getElementById('config-tipos-animais').value;
+            const novosCargos = document.getElementById('config-cargos').value;
+
+            if(!novoNome) return mostrarPopup('⚠️ Atenção', 'O nome da clínica não pode ficar vazio.');
 
             try {
                 const res = await fetch(`http://localhost:8080/api/clinica/${clinicaId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nome: novoNome, logo: novaLogo })
+                    body: JSON.stringify({ 
+                        nome: novoNome, 
+                        logotipo: novaLogo,
+                        cnpj: novoCNPJ,
+                        telefone: novoTelefone,
+                        endereco: novoEndereco,
+                        email_contato: novoEmailContato,
+                        categorias_prontuario: novasCategorias,
+                        tipos_animais: novosTiposAnimais,
+                        cargos: novosCargos
+                    })
                 });
 
                 if (res.ok) {
                     clinicaLogada.nomeClinica = novoNome;
                     clinicaLogada.logo = novaLogo;
+                    clinicaLogada.cnpj = novoCNPJ;
+                    clinicaLogada.telefone = novoTelefone;
+                    clinicaLogada.endereco = novoEndereco;
+                    clinicaLogada.email_contato = novoEmailContato;
+                    clinicaLogada.categorias_prontuario = novasCategorias;
+                    clinicaLogada.tipos_animais = novosTiposAnimais;
+                    clinicaLogada.cargos = novosCargos;
+                    
                     document.getElementById('clinica-tag').innerText = novoNome;
                     atualizarLogoSidebar();
-                    mostrarPopup('✅ Sucesso', 'Dados da clínica atualizados!');
+                    mostrarPopup('✅ Sucesso', 'Configurações da clínica atualizadas!');
                 } else {
                     mostrarPopup('❌ Erro', 'Não foi possível atualizar a clínica.');
                 }
@@ -1135,7 +1202,6 @@
                 mostrarPopup('❌ Erro', 'Falha na conexão com o servidor.');
             }
         }
-
         async function salvarNovaSenha() {
             const novaSenha = document.getElementById('config-nova-senha').value;
             if (!novaSenha || novaSenha.length < 6) {
