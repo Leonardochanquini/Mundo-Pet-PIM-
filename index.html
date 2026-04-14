@@ -41,7 +41,7 @@
         .status-badge:hover { opacity: 0.8; }
         
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 30px; position: relative; }
+        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 30px; position: relative; max-height: 90vh; overflow-y: auto; }
         
         @media print {
             .no-print { display: none !important; }
@@ -328,7 +328,6 @@
                     clinicaId = data.user.clinic_id;
                     clinicaLogada = { nome: `Clínica ${data.user.clinic_id}`, id: data.user.clinic_id };
                     
-                    // Busca todos os dados ativamente do banco de dados ao logar
                     try {
                         const colabRes = await fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`);
                         if(colabRes.ok) equipe = await colabRes.json();
@@ -401,6 +400,7 @@
             
             } else if(mod === 'estoque') {
                 tit.innerText = "Estoque Estratégico";
+                actions.innerHTML = `<button onclick="abrirModalEstoque()" class="btn-principal px-6 py-2 rounded-xl font-bold">+ Novo Item</button>`;
                 cont.innerHTML = `
                     <div class="bg-red-50 border border-red-200 p-4 rounded-xl mb-6 flex gap-4 items-center">
                         <span class="text-2xl">⚠️</span>
@@ -408,7 +408,7 @@
                     </div>
                     <div class="card">
                         <table>
-                            <thead><tr><th>Produto</th><th>Lote</th><th>Validade</th><th>Qtd</th><th>Ações Rápidas</th></tr></thead>
+                            <thead><tr><th>Produto</th><th>Lote</th><th>Validade</th><th>Qtd</th><th class="text-right">Ações Rápidas</th></tr></thead>
                             <tbody id="tabela-estoque-corpo">${renderEstoque()}</tbody>
                         </table>
                     </div>
@@ -743,7 +743,6 @@
                         });
                     }
                     
-                    // Refetch para garantir que a lista local esteja igual a do banco
                     const res = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
                     transacoes = await res.json();
                     
@@ -760,13 +759,14 @@
             if(estoque.length === 0) return `<tr><td colspan="5" class="text-center py-4 text-gray-400">Nenhum item no estoque.</td></tr>`;
             return estoque.map((p, i) => `
                 <tr>
-                    <td class="font-bold cursor-pointer text-blue-600 hover:underline" onclick="abrirModalEstoque(${i})">${p.nome}</td>
+                    <td class="font-bold">${p.nome}</td>
                     <td class="text-xs text-gray-400">${p.lote}</td>
                     <td>${p.val}</td>
                     <td class="font-black text-lg ${p.qtd < 5 ? 'text-red-500' : 'text-green-600'}">${p.qtd}</td>
-                    <td>
-                        <button onclick="ajustarEstoque(${i}, -1)" class="bg-gray-200 px-3 py-1 rounded font-bold text-gray-700">-</button>
-                        <button onclick="ajustarEstoque(${i}, 1)" class="bg-gray-200 px-3 py-1 rounded font-bold ml-1 text-gray-700">+</button>
+                    <td class="text-right">
+                        <button onclick="ajustarEstoque(${i}, -1)" class="bg-gray-200 px-3 py-1 rounded font-bold text-gray-700" title="Diminuir">-</button>
+                        <button onclick="ajustarEstoque(${i}, 1)" class="bg-gray-200 px-3 py-1 rounded font-bold ml-1 text-gray-700" title="Aumentar">+</button>
+                        <button onclick="deletarItemEstoque(${p.id})" class="text-red-500 hover:text-red-700 ml-4 text-lg align-middle" title="Apagar Item">🗑️</button>
                     </td>
                 </tr>
             `).join('');
@@ -793,8 +793,125 @@
             }
         }
 
-        function abrirModalEstoque(idx) { 
-            alert("Em breve: Edição completa do item " + estoque[idx].nome); 
+        async function deletarItemEstoque(id) {
+            if(confirm("Deseja realmente excluir este item do estoque?")) {
+                try {
+                    const res = await fetch(`http://localhost:8080/api/estoque/${id}`, { method: 'DELETE' });
+                    if(res.ok) {
+                        estoque = estoque.filter(e => e.id !== id);
+                        document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
+                        mostrarPopup('✅ Sucesso', 'Item removido do estoque.');
+                    } else {
+                        mostrarPopup('❌ Erro', 'Não foi possível excluir o item.');
+                    }
+                } catch(error) {
+                    mostrarPopup('🔌 Erro', 'Erro de conexão com o servidor.');
+                }
+            }
+        }
+
+        function abrirModalEstoque() { 
+            document.getElementById('modal-titulo').innerText = "Novo Item no Estoque";
+            
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Produto *</label>
+                        <input id="new-est-nome" placeholder="Ex: Vacina V10" class="input-pet" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Lote *</label>
+                            <input id="new-est-lote" placeholder="Ex: L-1234" class="input-pet" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Validade *</label>
+                            <input id="new-est-val" placeholder="MM/AAAA" class="input-pet" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Quantidade Inicial *</label>
+                            <input id="new-est-qtd" type="number" placeholder="0" class="input-pet" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Custo de Aquisição (R$)</label>
+                            <input id="new-est-valor" type="text" placeholder="R$ 0,00" class="input-pet" onkeyup="mascaraMoeda(this)">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Fornecedor</label>
+                        <input id="new-est-fornecedor" placeholder="Nome da empresa fornecedora" class="input-pet">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Descrição Adicional</label>
+                        <textarea id="new-est-desc" placeholder="Detalhes sobre o produto..." class="input-pet" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 mt-4 bg-blue-50 p-4 rounded-xl border border-blue-200">
+                        <input type="checkbox" id="new-est-transacao" class="w-5 h-5 cursor-pointer accent-blue-600">
+                        <label for="new-est-transacao" class="text-sm font-bold text-blue-800 cursor-pointer">
+                            Gerar despesa no financeiro automaticamente?
+                        </label>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modal-confirmar').onclick = async () => {
+                const nome = document.getElementById('new-est-nome').value.trim();
+                const lote = document.getElementById('new-est-lote').value.trim();
+                const val = document.getElementById('new-est-val').value.trim();
+                const qtd = parseInt(document.getElementById('new-est-qtd').value || 0);
+                const fornecedor = document.getElementById('new-est-fornecedor').value.trim();
+                const descricao = document.getElementById('new-est-desc').value.trim();
+
+                let valInput = document.getElementById('new-est-valor').value;
+                let numLimpo = valInput.replace(/\D/g, ''); 
+                let valorFloat = numLimpo ? parseFloat(numLimpo) / 100 : 0;
+
+                const gerarTransacao = document.getElementById('new-est-transacao').checked;
+
+                if (!nome || !lote || !val || isNaN(qtd)) {
+                    return mostrarPopup('⚠️ Atenção', 'Preencha os campos obrigatórios (*).');
+                }
+
+                if (gerarTransacao && valorFloat === 0) {
+                    return mostrarPopup('⚠️ Atenção', 'Para gerar uma transação financeira, o Custo de Aquisição deve ser maior que zero.');
+                }
+
+                const payload = {
+                    clinic_id: clinicaId,
+                    nome, lote, val, qtd, fornecedor, descricao, valor: valorFloat, gerarTransacao
+                };
+
+                try {
+                    const res = await fetch('http://localhost:8080/api/estoque', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (res.ok) {
+                        const estRes = await fetch(`http://localhost:8080/api/estoque/${clinicaId}`);
+                        estoque = await estRes.json();
+                        
+                        if (gerarTransacao) {
+                            const transRes = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
+                            transacoes = await transRes.json();
+                        }
+
+                        fecharModal();
+                        document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
+                        mostrarPopup('✅ Sucesso', 'Item adicionado ao estoque!');
+                    } else {
+                        mostrarPopup('❌ Erro', 'Falha ao salvar o item.');
+                    }
+                } catch (error) {
+                    mostrarPopup('🔌 Erro', 'Verifique a conexão com o servidor.');
+                }
+            };
+            
+            document.getElementById('modal-container').style.display = 'flex';
         }
 
         function fecharModal() { 

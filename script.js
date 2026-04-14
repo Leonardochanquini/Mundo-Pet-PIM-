@@ -11,8 +11,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Alterado o nome do banco para criar um do zero com as colunas corretas (CPF, Status, Estoque)
-const db = new sqlite3.Database('./mundopet_persistente.db');
+// Alterado o nome do banco para criar um do zero com as novas colunas do Estoque Completo sem conflito
+const db = new sqlite3.Database('./mundopet_persistente_v2.db');
 
 db.serialize(() => {
     console.log("🛠️  Configurando banco de dados...");
@@ -48,7 +48,7 @@ db.serialize(() => {
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
     )`);
 
-    // Nova tabela para garantir a persistência do estoque
+    // Tabela atualizada com novos campos: fornecedor, descricao, valor
     db.run(`CREATE TABLE IF NOT EXISTS estoque (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         clinic_id INTEGER,
@@ -56,6 +56,9 @@ db.serialize(() => {
         lote TEXT,
         val TEXT,
         qtd INTEGER,
+        fornecedor TEXT,
+        descricao TEXT,
+        valor REAL,
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
     )`);
 });
@@ -93,11 +96,11 @@ app.post('/api/assinatura-completa', (req, res) => {
                 stmt.finalize();
             }
 
-            // Popula um estoque inicial padrão para demonstração
-            const stmtEstoque = db.prepare(`INSERT INTO estoque (clinic_id, nome, lote, val, qtd) VALUES (?, ?, ?, ?, ?)`);
-            stmtEstoque.run([clinicaId, 'Vacina V10', 'V-2901', '10/2026', 12]);
-            stmtEstoque.run([clinicaId, 'Antipulgas Bravecto', 'B-1120', '02/2027', 4]);
-            stmtEstoque.run([clinicaId, 'Ração Premier 15kg', 'R-009', '12/2026', 8]);
+            // Popula um estoque inicial padrão para demonstração com os novos campos Null/Zerados
+            const stmtEstoque = db.prepare(`INSERT INTO estoque (clinic_id, nome, lote, val, qtd, fornecedor, descricao, valor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+            stmtEstoque.run([clinicaId, 'Vacina V10', 'V-2901', '10/2026', 12, 'Zoetis', 'Vacina múltipla canina', 0]);
+            stmtEstoque.run([clinicaId, 'Antipulgas Bravecto', 'B-1120', '02/2027', 4, 'MSD Saúde Animal', 'Para cães de 10 a 20kg', 0]);
+            stmtEstoque.run([clinicaId, 'Ração Premier 15kg', 'R-009', '12/2026', 8, 'Premier Pet', 'Ração super premium adultos', 0]);
             stmtEstoque.finalize();
 
             res.json({ success: true, message: "Sistema ativado com sucesso!" });
@@ -151,7 +154,6 @@ app.get('/api/colaboradores/:clinica_id', (req, res) => {
 app.get('/api/transacoes/:clinica_id', (req, res) => {
     db.all(`SELECT * FROM transacoes WHERE clinic_id = ? ORDER BY id DESC`, [req.params.clinica_id], (err, rows) => {
         if (err) return res.status(500).json({ error: "Erro ao buscar transações." });
-        // Mapeia para os nomes de propriedades que o frontend espera (desc, cat)
         res.json(rows.map(r => ({
             id: r.id, data: r.data, desc: r.descricao, cat: r.categoria, valor: r.valor, tipo: r.tipo, metodo: r.metodo
         })));
@@ -192,10 +194,41 @@ app.get('/api/estoque/:clinica_id', (req, res) => {
     });
 });
 
+app.post('/api/estoque', (req, res) => {
+    const { clinic_id, nome, lote, val, qtd, fornecedor, descricao, valor, gerarTransacao } = req.body;
+    
+    db.run(`INSERT INTO estoque (clinic_id, nome, lote, val, qtd, fornecedor, descricao, valor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [clinic_id, nome, lote, val, qtd, fornecedor, descricao, valor], function(err) {
+        if (err) return res.status(500).json({ error: "Erro ao salvar no estoque." });
+        const estoqueId = this.lastID;
+
+        // Se o usuário marcou a opção e há um valor definido, criamos a transação automaticamente
+        if (gerarTransacao && valor > 0) {
+            const dataAtual = new Date().toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}); // Formato DD/MM
+            const descTransacao = `Compra de Estoque: ${nome} (Qtd: ${qtd} | Lote: ${lote})`;
+            
+            db.run(`INSERT INTO transacoes (clinic_id, data, descricao, categoria, valor, tipo, metodo) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [clinic_id, dataAtual, descTransacao, 'Medicamentos', valor, 'saida', 'Pix'], function(errTrans) {
+                if (errTrans) console.error("Erro ao gerar transação automática:", errTrans);
+                res.json({ success: true, id: estoqueId, transacaoGerada: true });
+            });
+        } else {
+            res.json({ success: true, id: estoqueId });
+        }
+    });
+});
+
 app.put('/api/estoque/:id/ajustar', (req, res) => {
     const { qtd } = req.body;
     db.run(`UPDATE estoque SET qtd = ? WHERE id = ?`, [qtd, req.params.id], err => {
         if (err) return res.status(500).json({ error: "Erro ao atualizar estoque." });
+        res.json({ success: true });
+    });
+});
+
+app.delete('/api/estoque/:id', (req, res) => {
+    db.run(`DELETE FROM estoque WHERE id = ?`, [req.params.id], err => {
+        if (err) return res.status(500).json({ error: "Erro ao deletar item do estoque." });
         res.json({ success: true });
     });
 });
