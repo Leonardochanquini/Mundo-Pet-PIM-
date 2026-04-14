@@ -46,49 +46,88 @@ db.serialize(() => {
         metodo TEXT,
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
     )`);
-
-    db.run(`INSERT OR IGNORE INTO clinicas (id, nome, cnpj, telefone) 
-            VALUES (1, 'Clínica Modelo Mundo Pet', '00.000.000/0001-00', '11999999999')`);
-    
-    db.run(`INSERT OR IGNORE INTO usuarios (clinic_id, nome, email, senha, role) 
-            VALUES (1, 'Carlos Administrador', 'admin@teste.com', '123', 'admin')`);
-    
-    db.run(`INSERT OR IGNORE INTO usuarios (clinic_id, nome, email, senha, role) 
-            VALUES (1, 'Ana Recepção', 'rec@teste.com', '123', 'recepcao')`);
-
-    console.log("✅ Banco de dados pronto para uso.");
 });
 
-// ROTAS DA API
-app.post('/api/login', (req, res) => {
-    const { email, senha, role } = req.body;
-    const sql = `SELECT u.*, c.nome as clinica_nome FROM usuarios u 
-                 JOIN clinicas c ON u.clinic_id = c.id 
-                 WHERE u.email = ? AND u.senha = ? AND u.role = ?`;
+// --- ROTAS DE AUTENTICAÇÃO ---
 
-    db.get(sql, [email, senha, role], (err, row) => {
-        if (err) return res.status(500).json({ error: "Erro interno no servidor." });
-        if (row) {
-            const token = jwt.sign({ id: row.id, clinic_id: row.clinic_id, role: row.role }, SECRET_KEY, { expiresIn: '8h' });
-            res.json({ token, user: row });
-        } else {
-            res.status(401).json({ error: "E-mail, senha ou perfil incorretos." });
-        }
+app.post('/api/login', (req, res) => {
+    const { email, senha } = req.body;
+    
+    db.get(`SELECT * FROM usuarios WHERE email = ? AND senha = ?`, [email, senha], (err, user) => {
+        if (err) return res.status(500).json({ error: "Erro no servidor." });
+        if (!user) return res.status(401).json({ error: "E-mail ou senha incorretos." });
+
+        const token = jwt.sign({ id: user.id, role: user.role, clinic_id: user.clinic_id }, SECRET_KEY, { expiresIn: '2h' });
+        res.json({ success: true, token, user: { nome: user.nome, role: user.role, clinic_id: user.clinic_id } });
     });
 });
 
-app.post('/api/assinatura-completa', (req, res) => {
-    const { clinica } = req.body;
-    db.run(`INSERT INTO clinicas (nome, cnpj, telefone) VALUES (?, ?, ?)`, 
-    [clinica.nome, clinica.cnpj, clinica.cep], function(err) {
-        if (err) return res.status(500).json({ error: "Erro ao cadastrar clínica." });
-        const cid = this.lastID;
-        db.run(`INSERT INTO usuarios (clinic_id, nome, email, senha, role) VALUES (?, 'Gestor Principal', ?, ?, 'admin')`, 
-        [cid, clinica.emailAdmin, clinica.senhaAdmin], (err) => {
-            if (err) return res.status(500).json({ error: "Erro ao criar usuário administrador." });
+app.post('/api/registro-completo', (req, res) => {
+    const { nomeClinica, cnpj, telefone, nomeAdmin, email, senha } = req.body;
+
+    db.run(`INSERT INTO clinicas (nome, cnpj, telefone) VALUES (?, ?, ?)`, [nomeClinica, cnpj, telefone], function(err) {
+        if (err) return res.status(400).json({ error: "CNPJ já cadastrado ou erro no banco." });
+        
+        const clinicaId = this.lastID;
+        db.run(`INSERT INTO usuarios (clinic_id, nome, email, senha, role) VALUES (?, ?, ?, ?, ?)`, 
+        [clinicaId, nomeAdmin, email, senha, 'admin'], function(err) {
+            if (err) return res.status(400).json({ error: "E-mail já cadastrado." });
             res.json({ success: true, message: "Sistema ativado com sucesso!" });
         });
     });
 });
 
-app.listen(port, () => console.log(`🚀 Servidor Mundo Pet rodando em http://localhost:${port}`));
+// --- ROTAS DE COLABORADORES ---
+
+app.post('/api/colaborador', (req, res) => {
+    const { nome, email, senha, cargo, clinica_id } = req.body;
+    
+    // Verificar se email já existe
+    db.get(`SELECT email FROM usuarios WHERE email = ?`, [email], (err, row) => {
+        if (err) return res.status(500).json({ error: "Erro interno no servidor." });
+        if (row) return res.status(400).json({ error: "E-mail já cadastrado no sistema." });
+        
+        // Inserir novo colaborador - Alinhado com a coluna clinic_id
+        db.run(`INSERT INTO usuarios (clinic_id, nome, email, senha, role) VALUES (?, ?, ?, ?, ?)`, 
+        [clinica_id, nome, email, senha, cargo], function(err) {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ error: "Erro ao cadastrar colaborador." });
+            }
+            res.json({ success: true, message: "Colaborador cadastrado com sucesso!", id: this.lastID });
+        });
+    });
+});
+
+app.get('/api/colaboradores/:clinica_id', (req, res) => {
+    const { clinica_id } = req.params;
+    
+    // Busca todos os usuários vinculados àquela clínica
+    db.all(`SELECT id, nome, email, role as cargo FROM usuarios WHERE clinic_id = ?`, [clinica_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Erro ao buscar colaboradores." });
+        res.json(rows);
+    });
+});
+
+// --- FINANCEIRO ---
+
+app.get('/api/transacoes/:clinica_id', (req, res) => {
+    const { clinica_id } = req.params;
+    db.all(`SELECT * FROM transacoes WHERE clinic_id = ? ORDER BY data DESC`, [clinica_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Erro ao buscar transações." });
+        res.json(rows);
+    });
+});
+
+app.post('/api/transacoes', (req, res) => {
+    const { clinic_id, data, descricao, categoria, valor, tipo, metodo } = req.body;
+    db.run(`INSERT INTO transacoes (clinic_id, data, descricao, categoria, valor, tipo, metodo) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [clinic_id, data, descricao, categoria, valor, tipo, metodo], function(err) {
+        if (err) return res.status(500).json({ error: "Erro ao salvar transação." });
+        res.json({ success: true, id: this.lastID });
+    });
+});
+
+app.listen(port, () => {
+    console.log(`🚀 Servidor Mundo Pet rodando em http://localhost:${port}`);
+});
