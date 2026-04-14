@@ -19,7 +19,6 @@
         .sidebar-item.active { background-color: #3b82f6; color: white; }
         .btn-voltar { position: absolute; top: 25px; left: 25px; font-weight: 800; color: #3b82f6; cursor: pointer; z-index: 100; }
         
-        /* Pop-up customizado */
         .popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
         .popup-content { background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 30px; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         .popup-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; color: #1f2937; }
@@ -28,7 +27,6 @@
         .popup-button-primary { background: linear-gradient(90deg, #10b981, #3b82f6); color: white; }
         .popup-button-primary:hover { opacity: 0.9; transform: translateY(-1px); }
         
-        /* Ajustes de responsividade */
         .etapa-checkout { width: 95%; max-width: 500px; margin: 0 auto; }
         @media (max-width: 640px) {
             .etapa-checkout { width: 98%; padding: 15px; }
@@ -81,68 +79,33 @@
     <div id="tela-checkout" class="hidden min-h-screen bg-gray-100 flex items-center justify-center relative p-6">
         <div class="btn-voltar no-print" onclick="irPara('tela-planos')">← VOLTAR</div>
         
-        <!-- Etapa 1: Informações da Clínica -->
         <div id="etapa-1" class="etapa-checkout card w-full max-w-lg">
             <div class="mb-8">
                 <div class="flex justify-between items-center mb-6">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">1</div>
-                        <span class="font-bold text-blue-600">Dados da Clínica</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">2</div>
-                        <span class="text-gray-400">Colaboradores</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">3</div>
-                        <span class="text-gray-400">Pagamento</span>
-                    </div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">1</div><span class="font-bold text-blue-600">Dados da Clínica</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">2</div><span class="text-gray-400">Colaboradores</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">3</div><span class="text-gray-400">Pagamento</span></div>
                 </div>
             </div>
             
             <h3 class="text-2xl font-bold mb-6">Informações da Clínica</h3>
             <div class="space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-500 mb-1 block">Nome da Clínica</label>
-                    <input id="clinica-nome" placeholder="Ex: Clínica Veterinária Pet Vida" class="input-pet">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 mb-1 block">CNPJ</label>
-                    <input id="clinica-cnpj" placeholder="00.000.000/0001-00" class="input-pet" onkeyup="mascaraCNPJ(this)">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 mb-1 block">Telefone</label>
-                    <input id="clinica-telefone" placeholder="(11) 99999-9999" class="input-pet" onkeyup="mascaraTelefone(this)">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail Administrativo</label>
-                    <input id="clinica-email" type="email" placeholder="admin@clinica.com" class="input-pet">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 mb-1 block">Senha de Acesso</label>
-                    <input id="clinica-senha" type="password" placeholder="Mínimo 6 caracteres" class="input-pet">
-                </div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Nome da Clínica</label><input id="clinica-nome" placeholder="Ex: Clínica Veterinária Pet Vida" class="input-pet"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">CNPJ</label><input id="clinica-cnpj" placeholder="00.000.000/0001-00" class="input-pet" onkeyup="mascaraCNPJ(this)"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Telefone</label><input id="clinica-telefone" placeholder="(11) 99999-9999" class="input-pet" onkeyup="mascaraTelefone(this)"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">E-mail Administrativo</label><input id="clinica-email" type="email" placeholder="admin@clinica.com" class="input-pet"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Senha de Acesso</label><input id="clinica-senha" type="password" placeholder="Mínimo 6 caracteres" class="input-pet"></div>
             </div>
             <p id="info-plano-etapa1" class="text-sm text-blue-500 font-bold mt-4"></p>
             <button onclick="validarEtapa1()" class="w-full btn-principal py-4 rounded-xl font-bold mt-6">Continuar</button>
         </div>
 
-        <!-- Etapa 2: Cadastro de Colaboradores -->
         <div id="etapa-2" class="etapa-checkout card w-full max-w-lg hidden">
             <div class="mb-8">
                 <div class="flex justify-between items-center mb-6">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div>
-                        <span class="font-bold text-green-600">Dados da Clínica</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">2</div>
-                        <span class="font-bold text-blue-600">Colaboradores</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">3</div>
-                        <span class="text-gray-400">Pagamento</span>
-                    </div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div><span class="font-bold text-green-600">Dados da Clínica</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">2</div><span class="font-bold text-blue-600">Colaboradores</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">3</div><span class="text-gray-400">Pagamento</span></div>
                 </div>
             </div>
             
@@ -157,47 +120,24 @@
             </div>
         </div>
 
-        <!-- Etapa 3: Pagamento -->
         <div id="etapa-3" class="etapa-checkout card w-full max-w-lg hidden">
             <div class="mb-8">
                 <div class="flex justify-between items-center mb-6">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div>
-                        <span class="font-bold text-green-600">Dados da Clínica</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div>
-                        <span class="font-bold text-green-600">Colaboradores</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">3</div>
-                        <span class="font-bold text-blue-600">Pagamento</span>
-                    </div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div><span class="font-bold text-green-600">Dados da Clínica</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div><span class="font-bold text-green-600">Colaboradores</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">3</div><span class="font-bold text-blue-600">Pagamento</span></div>
                 </div>
             </div>
             
             <h3 class="text-2xl font-bold mb-6">Informações de Pagamento</h3>
             <div class="space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Titular do Cartão</label>
-                    <input id="cartao-nome" placeholder="Como está no cartão" class="input-pet">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 mb-1 block">Número do Cartão</label>
-                    <input id="cartao-numero" placeholder="0000 0000 0000 0000" class="input-pet" onkeyup="mascaraCartao(this)">
-                </div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Titular do Cartão</label><input id="cartao-nome" placeholder="Como está no cartão" class="input-pet"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Número do Cartão</label><input id="cartao-numero" placeholder="0000 0000 0000 0000" class="input-pet" onkeyup="mascaraCartao(this)"></div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 mb-1 block">Validade</label>
-                        <input id="cartao-validade" placeholder="MM/AA" class="input-pet" onkeyup="mascaraValidade(this)">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 mb-1 block">CVV</label>
-                        <input id="cartao-cvv" placeholder="123" class="input-pet" onkeyup="mascaraCVV(this)" maxlength="4">
-                    </div>
+                    <div><label class="text-xs font-bold text-gray-500 mb-1 block">Validade</label><input id="cartao-validade" placeholder="MM/AA" class="input-pet" onkeyup="mascaraValidade(this)"></div>
+                    <div><label class="text-xs font-bold text-gray-500 mb-1 block">CVV</label><input id="cartao-cvv" placeholder="123" class="input-pet" onkeyup="mascaraCVV(this)" maxlength="4"></div>
                 </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-500 mb-1 block">Método de Pagamento</label>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Método de Pagamento</label>
                     <select id="metodo-pagamento" class="input-pet">
                         <option value="credito">Cartão de Crédito</option>
                         <option value="debito">Cartão de Débito</option>
@@ -208,12 +148,10 @@
             </div>
             <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl mt-6">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm text-gray-600">Plano Selecionado:</span>
-                    <span id="resumo-plano" class="font-bold text-blue-600"></span>
+                    <span class="text-sm text-gray-600">Plano Selecionado:</span><span id="resumo-plano" class="font-bold text-blue-600"></span>
                 </div>
                 <div class="flex justify-between items-center">
-                    <span class="text-lg font-bold">Total:</span>
-                    <span id="resumo-total" class="text-2xl font-bold text-blue-600"></span>
+                    <span class="text-lg font-bold">Total:</span><span id="resumo-total" class="text-2xl font-bold text-blue-600"></span>
                 </div>
             </div>
             <div class="flex gap-4 mt-6">
@@ -242,8 +180,7 @@
     <div id="app-container" class="hidden h-screen flex">
         <aside class="w-64 bg-white border-r p-6 flex flex-col no-print">
             <div class="text-2xl font-black text-blue-600 mb-10 italic">🐾 Mundo Pet</div>
-            <nav id="menu-lateral" class="flex-grow space-y-1">
-                </nav>
+            <nav id="menu-lateral" class="flex-grow space-y-1"></nav>
             <button onclick="location.reload()" class="text-red-500 font-bold p-4 hover:bg-red-50 rounded-xl text-left">Sair</button>
         </aside>
 
@@ -282,26 +219,20 @@
         let roleAtiva = 'admin';
         let filtroPeriodo = 'Mês Atual'; 
 
-        // Helpers de Data
         const dtHoje = new Date();
         const dtOntem = new Date(dtHoje); dtOntem.setDate(dtHoje.getDate() - 1);
         const formatDt = (d) => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
 
-        // --- ESTADOS DA APLICAÇÃO ---
         let planoSelecionado = { nome: '', preco: 0 };
         let dadosClinica = {};
         let colaboradoresCheckout = [];
-        let clinicaLogada = null; // Armazena os dados da clínica logada
-        let clinicaId = null; // ID da clínica logada
-        
-        // Dados por clínica (inicialmente vazios)
-        let dadosPorClinica = {};
+        let clinicaLogada = null; 
+        let clinicaId = null; 
         
         let equipe = [];
         let estoque = [];
         let transacoes = [];
 
-        // --- MÁSCARAS E FUNÇÕES AUXILIARES ---
         function mascaraMoeda(i) {
             let v = i.value.replace(/\D/g,'');
             if(v === '') { i.value = ''; return; }
@@ -361,7 +292,6 @@
             i.value = v;
         }
 
-        // --- NAVEGAÇÃO E LOGIN ---
         function irPara(id) {
             document.querySelectorAll('body > div').forEach(d => d.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
@@ -382,62 +312,48 @@
         async function processarAssinatura() { irPara('tela-login'); }
 
         async function efetuarLogin() {
-    const email = document.getElementById('login-email').value;
-    const senha = document.getElementById('login-senha').value;
+            const email = document.getElementById('login-email').value;
+            const senha = document.getElementById('login-senha').value;
 
-    try {
-        // Faz a chamada para o servidor na porta 8080
-        const res = await fetch('http://localhost:8080/api/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ email, senha })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-            // Armazenar dados do usuário logado
-            clinicaId = data.user.clinic_id;
-            clinicaLogada = { nome: `Clínica ${data.user.clinic_id}`, id: data.user.clinic_id };
-            
-            // Inicializar dados da clínica se não existirem
-            if (!dadosPorClinica[clinicaId]) {
-                dadosPorClinica[clinicaId] = {
-                    equipe: [],
-                    estoque: [],
-                    transacoes: []
-                };
-            }
-            
-            // Carregar colaboradores do banco de dados
             try {
-                const colaboradoresResponse = await fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`);
-                if (colaboradoresResponse.ok) {
-                    const colaboradoresDB = await colaboradoresResponse.json();
-                    dadosPorClinica[clinicaId].equipe = colaboradoresDB;
-                    equipe = colaboradoresDB;
+                const res = await fetch('http://localhost:8080/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    clinicaId = data.user.clinic_id;
+                    clinicaLogada = { nome: `Clínica ${data.user.clinic_id}`, id: data.user.clinic_id };
+                    
+                    // Busca todos os dados ativamente do banco de dados ao logar
+                    try {
+                        const colabRes = await fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`);
+                        if(colabRes.ok) equipe = await colabRes.json();
+
+                        const transRes = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
+                        if(transRes.ok) transacoes = await transRes.json();
+
+                        const estRes = await fetch(`http://localhost:8080/api/estoque/${clinicaId}`);
+                        if(estRes.ok) estoque = await estRes.json();
+
+                    } catch (error) {
+                        console.error('Erro ao buscar dados iniciais:', error);
+                    }
+                    
+                    irPara('app-container');
+                    document.getElementById('clinica-tag').innerText = clinicaLogada.nome;
+                    montarMenu();
+                    navegarModulo('financeiro');
                 } else {
-                    equipe = dadosPorClinica[clinicaId].equipe || [];
+                    mostrarPopup('❌ Erro de Login', data.error || "Usuário ou senha incorretos");
                 }
-            } catch (error) {
-                console.error('Erro ao carregar colaboradores:', error);
-                equipe = dadosPorClinica[clinicaId].equipe || [];
+            } catch (e) {
+                mostrarPopup('🔌 Erro de Conexão', "Erro: O servidor não está rodando na porta 8080.");
             }
-            
-            estoque = dadosPorClinica[clinicaId].estoque || [];
-            transacoes = dadosPorClinica[clinicaId].transacoes || [];
-            
-            irPara('app-container');
-            document.getElementById('clinica-tag').innerText = clinicaLogada.nome;
-            montarMenu();
-            navegarModulo('financeiro');
-        } else {
-            mostrarPopup('❌ Erro de Login', data.error || "Usuário ou senha incorretos");
         }
-    } catch (e) {
-        mostrarPopup('🔌 Erro de Conexão', "Erro: O servidor não está rodando na porta 8080.");
-    }
-}
 
         function montarMenu() {
             document.getElementById('menu-lateral').innerHTML = `
@@ -504,7 +420,6 @@
             }
         }
 
-        // --- LÓGICA DE EQUIPE (NOVAS IMPLEMENTAÇÕES DE RH) ---
         function renderEquipe(lista) {
             if (lista.length === 0) return `<tr><td colspan="6" class="text-center py-4 text-gray-400 italic">Nenhum colaborador encontrado.</td></tr>`;
             return lista.map(u => `
@@ -514,7 +429,7 @@
                     <td>${u.email || '-'}</td>
                     <td>
                         <span onclick="alternarStatus(${u.id})" class="status-badge ${u.status === 'Ativo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}" title="Clique para mudar">
-                            ${u.status} 
+                            ${u.status || 'Ativo'} 
                         </span>
                     </td>
                     <td class="text-gray-400 text-xs">${u.ultimoAcesso || '-'}</td>
@@ -527,15 +442,29 @@
             const q = document.getElementById('busca-equipe').value.toLowerCase();
             const filtrados = equipe.filter(u => 
                 u.nome.toLowerCase().includes(q) || 
-                u.cpf.replace(/\D/g,'').includes(q.replace(/\D/g,''))
+                (u.cpf && u.cpf.replace(/\D/g,'').includes(q.replace(/\D/g,'')))
             );
             document.getElementById('tabela-equipe-corpo').innerHTML = renderEquipe(filtrados);
         }
 
-        function alternarStatus(id) {
+        async function alternarStatus(id) {
             const idx = equipe.findIndex(e => e.id === id);
-            equipe[idx].status = equipe[idx].status === 'Ativo' ? 'Inativo' : 'Ativo';
-            filtrarEquipe(); // Re-renderiza mantendo o filtro atual da busca
+            const novoStatus = equipe[idx].status === 'Ativo' ? 'Inativo' : 'Ativo';
+            
+            try {
+                const res = await fetch(`http://localhost:8080/api/colaborador/${id}/status`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ status: novoStatus })
+                });
+                
+                if(res.ok) {
+                    equipe[idx].status = novoStatus;
+                    filtrarEquipe();
+                }
+            } catch (error) {
+                mostrarPopup('Erro', 'Não foi possível alterar o status no banco de dados.');
+            }
         }
 
         function abrirModalColaborador(editId = null) {
@@ -582,72 +511,47 @@
                     email: document.getElementById('new-colab-email').value
                 };
 
-                if (!dados.nome || !dados.cpf || !dados.email) {
-                    mostrarPopup('⚠️ Campos Obrigatórios', 'Por favor, preencha nome, CPF e email.');
-                    return;
-                }
-
-                if (!editId && !document.getElementById('new-colab-senha').value) {
-                    mostrarPopup('⚠️ Senha Obrigatória', 'Por favor, defina uma senha para o novo colaborador.');
-                    return;
-                }
-
-                if (!dados.email.includes('@') || !dados.email.includes('.')) {
-                    mostrarPopup('⚠️ E-mail Inválido', 'Por favor, insira um e-mail válido.');
-                    return;
-                }
+                if (!dados.nome || !dados.cpf || !dados.email) return mostrarPopup('⚠️', 'Preencha nome, CPF e email.');
 
                 try {
                     if(editId) {
-                        // Editar colaborador existente (apenas no frontend por enquanto)
-                        Object.assign(u, dados);
-                        mostrarPopup('✅ Colaborador Atualizado', 'Dados do colaborador atualizados com sucesso!');
+                        const res = await fetch(`http://localhost:8080/api/colaborador/${editId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(dados)
+                        });
+                        if (res.ok) {
+                            Object.assign(u, dados);
+                            mostrarPopup('✅ Sucesso', 'Colaborador atualizado!');
+                        }
                     } else {
-                        // Criar novo colaborador no banco de dados
-                        const response = await fetch('http://localhost:8080/api/colaborador', {
+                        const senha = document.getElementById('new-colab-senha').value;
+                        if (!senha) return mostrarPopup('⚠️', 'Defina uma senha.');
+                        
+                        const res = await fetch('http://localhost:8080/api/colaborador', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                nome: dados.nome,
-                                cpf: dados.cpf,
-                                email: dados.email,
-                                senha: document.getElementById('new-colab-senha').value,
-                                cargo: dados.cargo,
-                                clinica_id: clinicaId
-                            })
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ...dados, senha, clinica_id: clinicaId })
                         });
 
-                        const result = await response.json();
-
-                        if (response.ok) {
-                            equipe.push({
-                                id: result.id,
-                                nome: dados.nome,
-                                cpf: dados.cpf,
-                                cargo: dados.cargo,
-                                email: dados.email,
-                                status: 'Ativo',
-                                ultimoAcesso: 'Nunca'
-                            });
-                            mostrarPopup('✅ Colaborador Criado', `${dados.nome} foi cadastrado com sucesso! Senha: ${document.getElementById('new-colab-senha').value}`);
+                        const result = await res.json();
+                        if (res.ok) {
+                            equipe.push({ id: result.id, ...dados, status: 'Ativo', ultimoAcesso: 'Nunca' });
+                            mostrarPopup('✅ Sucesso', `Cadastrado com sucesso!`);
                         } else {
-                            mostrarPopup('❌ Erro no Cadastro', result.error || 'Erro ao cadastrar colaborador.');
+                            return mostrarPopup('❌ Erro', result.error);
                         }
                     }
                     
                     fecharModal();
-                    navegarModulo('equipe'); // Recarrega a tela de equipe
+                    navegarModulo('equipe');
                 } catch (error) {
-                    console.error('Erro:', error);
-                    mostrarPopup('🔌 Erro de Conexão', 'Erro de conexão. Verifique se o servidor está rodando.');
+                    mostrarPopup('🔌 Erro', 'Erro de conexão.');
                 }
             };
             document.getElementById('modal-container').style.display = 'flex';
         }
 
-        // --- LÓGICA FINANCEIRA (V5) ---
         function mudarFiltroPeriodo(valor) {
             filtroPeriodo = valor;
             atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
@@ -714,10 +618,17 @@
             `;
         }
 
-        function deletarTransacao(id) {
+        async function deletarTransacao(id) {
             if(confirm("Deseja realmente apagar esta transação?")) {
-                transacoes = transacoes.filter(t => t.id !== id);
-                atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                try {
+                    const res = await fetch(`http://localhost:8080/api/transacoes/${id}`, { method: 'DELETE' });
+                    if(res.ok) {
+                        transacoes = transacoes.filter(t => t.id !== id);
+                        atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                    }
+                } catch(error) {
+                    mostrarPopup('Erro', 'Erro ao deletar transação.');
+                }
             }
         }
 
@@ -811,33 +722,42 @@
                 const dateParts = document.getElementById('new-trans-data').value.split('-');
                 const dataFormatada = `${dateParts[2]}/${dateParts[1]}`;
 
-                if(editId) {
-                    t.desc = document.getElementById('new-trans-desc').value;
-                    t.data = dataFormatada;
-                    t.cat = document.getElementById('new-trans-cat').value;
-                    t.valor = valorFloat;
-                    t.tipo = document.getElementById('new-trans-tipo').value;
-                    t.metodo = document.getElementById('new-trans-metodo').value;
-                } else {
-                    transacoes.unshift({
-                        id: Date.now(),
-                        data: dataFormatada,
-                        desc: document.getElementById('new-trans-desc').value,
-                        cat: document.getElementById('new-trans-cat').value,
-                        valor: valorFloat,
-                        tipo: document.getElementById('new-trans-tipo').value,
-                        metodo: document.getElementById('new-trans-metodo').value
-                    });
+                const payload = {
+                    clinic_id: clinicaId,
+                    data: dataFormatada,
+                    descricao: document.getElementById('new-trans-desc').value,
+                    categoria: document.getElementById('new-trans-cat').value,
+                    valor: valorFloat,
+                    tipo: document.getElementById('new-trans-tipo').value,
+                    metodo: document.getElementById('new-trans-metodo').value
+                };
+
+                try {
+                    if(editId) {
+                        await fetch(`http://localhost:8080/api/transacoes/${editId}`, {
+                            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                        });
+                    } else {
+                        await fetch(`http://localhost:8080/api/transacoes`, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                        });
+                    }
+                    
+                    // Refetch para garantir que a lista local esteja igual a do banco
+                    const res = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
+                    transacoes = await res.json();
+                    
+                    fecharModal();
+                    atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                } catch(error) {
+                    mostrarPopup('Erro', 'Não foi possível salvar a transação.');
                 }
-                
-                fecharModal();
-                atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
             };
             document.getElementById('modal-container').style.display = 'flex';
         }
 
-        // --- LÓGICA DE ESTOQUE (V5) ---
         function renderEstoque() {
+            if(estoque.length === 0) return `<tr><td colspan="5" class="text-center py-4 text-gray-400">Nenhum item no estoque.</td></tr>`;
             return estoque.map((p, i) => `
                 <tr>
                     <td class="font-bold cursor-pointer text-blue-600 hover:underline" onclick="abrirModalEstoque(${i})">${p.nome}</td>
@@ -851,14 +771,29 @@
                 </tr>
             `).join('');
         }
-        function ajustarEstoque(idx, qtd) {
-            if(estoque[idx].qtd + qtd >= 0) {
-                estoque[idx].qtd += qtd;
-                document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
+
+        async function ajustarEstoque(idx, qtd) {
+            const item = estoque[idx];
+            if(item.qtd + qtd >= 0) {
+                try {
+                    const novaQtd = item.qtd + qtd;
+                    const res = await fetch(`http://localhost:8080/api/estoque/${item.id}/ajustar`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ qtd: novaQtd })
+                    });
+
+                    if(res.ok) {
+                        estoque[idx].qtd = novaQtd;
+                        document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
+                    }
+                } catch (error) {
+                    mostrarPopup('Erro', 'Não foi possível atualizar o estoque.');
+                }
             }
         }
+
         function abrirModalEstoque(idx) { 
-            // Mock de edição rápida de estoque para o V5
             alert("Em breve: Edição completa do item " + estoque[idx].nome); 
         }
 
@@ -869,7 +804,6 @@
             document.getElementById('modal-container').style.display = 'none'; 
         }
 
-        // --- FUNÇÕES DO POP-UP CUSTOMIZADO ---
         function mostrarPopup(titulo, mensagem) {
             document.getElementById('popup-titulo').innerText = titulo;
             document.getElementById('popup-mensagem').innerText = mensagem;
@@ -880,7 +814,6 @@
             document.getElementById('popup-container').style.display = 'none';
         }
 
-        // --- FUNÇÕES DO FLUXO DE CHECKOUT ---
         function validarEtapa1() {
             const nome = document.getElementById('clinica-nome').value.trim();
             const cnpj = document.getElementById('clinica-cnpj').value.trim();
@@ -888,108 +821,44 @@
             const email = document.getElementById('clinica-email').value.trim();
             const senha = document.getElementById('clinica-senha').value.trim();
 
-            if (!nome || !cnpj || !telefone || !email || !senha) {
-                mostrarPopup('⚠️ Campos Obrigatórios', 'Por favor, preencha todos os campos obrigatórios.');
-                return;
-            }
-
-            if (senha.length < 6) {
-                mostrarPopup('⚠️ Senha Inválida', 'A senha deve ter no mínimo 6 caracteres.');
-                return;
-            }
-
-            if (!email.includes('@') || !email.includes('.')) {
-                mostrarPopup('⚠️ E-mail Inválido', 'Por favor, insira um e-mail válido.');
-                return;
-            }
-
+            if (!nome || !cnpj || !telefone || !email || !senha) return mostrarPopup('⚠️', 'Preencha os campos.');
+            if (senha.length < 6) return mostrarPopup('⚠️', 'A senha deve ter no mínimo 6 caracteres.');
+            
             dadosClinica = { nome, cnpj, telefone, email, senha };
             
-            // Esconder etapa 1, mostrar etapa 2
             document.getElementById('etapa-1').classList.add('hidden');
             document.getElementById('etapa-2').classList.remove('hidden');
-            
             renderizarColaboradores();
         }
 
         function renderizarColaboradores() {
             const container = document.getElementById('colaboradores-lista');
-            
+            let formNovo = `
+                <div class="bg-white border border-gray-200 p-4 rounded-lg mt-4">
+                    <h4 class="font-bold mb-4 text-gray-800">Adicionar Colaborador</h4>
+                    <div class="space-y-3">
+                        <input id="novo-colab-nome" placeholder="Ex: João da Silva" class="input-pet mb-2">
+                        <div class="grid grid-cols-2 gap-3 mb-2">
+                            <input id="novo-colab-cpf" onkeyup="mascaraCPF(this)" placeholder="CPF" class="input-pet">
+                            <select id="novo-colab-cargo" class="input-pet">
+                                <option value="">Cargo...</option><option value="Veterinário">Veterinário</option><option value="Recepção">Recepção</option><option value="Administrador">Administrador</option>
+                            </select>
+                        </div>
+                        <input id="novo-colab-email" type="email" placeholder="E-mail" class="input-pet mb-2">
+                        <button onclick="adicionarColaboradorForm()" class="w-full btn-principal py-3 rounded-xl font-bold">+ Adicionar Colaborador</button>
+                    </div>
+                </div>`;
+
             if (colaboradoresCheckout.length === 0) {
-                container.innerHTML = '<div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4"><p class="text-gray-400 text-center">Nenhum colaborador adicionado ainda.</p></div>' +
-                    '<div class="bg-white border border-gray-200 p-4 rounded-lg">' +
-                        '<h4 class="font-bold mb-4 text-gray-800">Adicionar Novo Colaborador</h4>' +
-                        '<div class="space-y-3">' +
-                            '<div>' +
-                                '<label class="text-xs font-bold text-gray-500 mb-1 block">Nome Completo</label>' +
-                                '<input id="novo-colab-nome" placeholder="Ex: João da Silva" class="input-pet">' +
-                            '</div>' +
-                            '<div class="grid grid-cols-2 gap-3">' +
-                                '<div>' +
-                                    '<label class="text-xs font-bold text-gray-500 mb-1 block">CPF</label>' +
-                                    '<input id="novo-colab-cpf" onkeyup="mascaraCPF(this)" placeholder="000.000.000-00" class="input-pet">' +
-                                '</div>' +
-                                '<div>' +
-                                    '<label class="text-xs font-bold text-gray-500 mb-1 block">Cargo</label>' +
-                                    '<select id="novo-colab-cargo" class="input-pet">' +
-                                        '<option value="">Selecione...</option>' +
-                                        '<option value="Veterinário">Veterinário</option>' +
-                                        '<option value="Recepção">Recepção</option>' +
-                                        '<option value="Administrador">Administrador</option>' +
-                                    '</select>' +
-                                '</div>' +
-                            '</div>' +
-                            '<div>' +
-                                '<label class="text-xs font-bold text-gray-500 mb-1 block">E-mail</label>' +
-                                '<input id="novo-colab-email" type="email" placeholder="colaborador@clinica.com" class="input-pet">' +
-                            '</div>' +
-                            '<button onclick="adicionarColaboradorForm()" class="w-full btn-principal py-3 rounded-xl font-bold">+ Adicionar Colaborador</button>' +
-                        '</div>' +
-                    '</div>';
+                container.innerHTML = '<div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4"><p class="text-gray-400 text-center">Nenhum colaborador adicionado ainda.</p></div>' + formNovo;
             } else {
-                let colaboradoresHTML = colaboradoresCheckout.map((colab, index) => 
-                    '<div class="bg-gray-50 p-4 rounded-lg border mb-3">' +
-                        '<div class="flex justify-between items-start">' +
-                            '<div class="flex-1">' +
-                                '<p class="font-bold">' + colab.nome + '</p>' +
-                                '<p class="text-sm text-gray-600">' + colab.cargo + ' - ' + colab.email + '</p>' +
-                                '<p class="text-xs text-gray-400">' + colab.cpf + '</p>' +
-                            '</div>' +
-                            '<button onclick="removerColaborador(' + index + ')" class="text-red-500 font-bold hover:text-red-700">Remover</button>' +
-                        '</div>' +
-                    '</div>'
-                ).join('');
-                
-                container.innerHTML = colaboradoresHTML +
-                    '<div class="bg-white border border-gray-200 p-4 rounded-lg mt-4">' +
-                        '<h4 class="font-bold mb-4 text-gray-800">Adicionar Outro Colaborador</h4>' +
-                        '<div class="space-y-3">' +
-                            '<div>' +
-                                '<label class="text-xs font-bold text-gray-500 mb-1 block">Nome Completo</label>' +
-                                '<input id="novo-colab-nome" placeholder="Ex: João da Silva" class="input-pet">' +
-                            '</div>' +
-                            '<div class="grid grid-cols-2 gap-3">' +
-                                '<div>' +
-                                    '<label class="text-xs font-bold text-gray-500 mb-1 block">CPF</label>' +
-                                    '<input id="novo-colab-cpf" onkeyup="mascaraCPF(this)" placeholder="000.000.000-00" class="input-pet">' +
-                                '</div>' +
-                                '<div>' +
-                                    '<label class="text-xs font-bold text-gray-500 mb-1 block">Cargo</label>' +
-                                    '<select id="novo-colab-cargo" class="input-pet">' +
-                                        '<option value="">Selecione...</option>' +
-                                        '<option value="Veterinário">Veterinário</option>' +
-                                        '<option value="Recepção">Recepção</option>' +
-                                        '<option value="Administrador">Administrador</option>' +
-                                    '</select>' +
-                                '</div>' +
-                            '</div>' +
-                            '<div>' +
-                                '<label class="text-xs font-bold text-gray-500 mb-1 block">E-mail</label>' +
-                                '<input id="novo-colab-email" type="email" placeholder="colaborador@clinica.com" class="input-pet">' +
-                            '</div>' +
-                            '<button onclick="adicionarColaboradorForm()" class="w-full btn-principal py-3 rounded-xl font-bold">+ Adicionar Colaborador</button>' +
-                        '</div>' +
-                    '</div>';
+                let listaHtml = colaboradoresCheckout.map((colab, index) => `
+                    <div class="bg-gray-50 p-4 rounded-lg border mb-3 flex justify-between items-start">
+                        <div><p class="font-bold">${colab.nome}</p><p class="text-sm text-gray-600">${colab.cargo} - ${colab.email}</p></div>
+                        <button onclick="removerColaborador(${index})" class="text-red-500 font-bold hover:text-red-700">Remover</button>
+                    </div>
+                `).join('');
+                container.innerHTML = listaHtml + formNovo;
             }
         }
 
@@ -999,115 +868,39 @@
             const cargo = document.getElementById('novo-colab-cargo').value.trim();
             const email = document.getElementById('novo-colab-email').value.trim();
 
-            if (!nome || !cpf || !cargo || !email) {
-                mostrarPopup('⚠️ Campos Obrigatórios', 'Por favor, preencha todos os campos do colaborador.');
-                return;
-            }
+            if (!nome || !cpf || !cargo || !email) return mostrarPopup('⚠️', 'Preencha os dados.');
+            
+            colaboradoresCheckout.push({ nome, cpf, cargo, email });
+            renderizarColaboradores();
+        }
 
-            if (cpf.replace(/\D/g, '').length < 11) {
-                mostrarPopup('⚠️ CPF Inválido', 'Por favor, insira um CPF válido.');
-                return;
-            }
-
-            if (!email.includes('@') || !email.includes('.')) {
-                mostrarPopup('⚠️ E-mail Inválido', 'Por favor, insira um e-mail válido.');
-                return;
-            }
-
-            colaboradoresCheckout.push({
-                nome: nome,
-                cpf: cpf,
-                cargo: cargo,
-                email: email
-            });
-
-            // Limpar formulário
-            document.getElementById('novo-colab-nome').value = '';
-            document.getElementById('novo-colab-cpf').value = '';
-            document.getElementById('novo-colab-cargo').value = '';
-            document.getElementById('novo-colab-email').value = '';
-
+        function removerColaborador(index) {
+            colaboradoresCheckout.splice(index, 1);
             renderizarColaboradores();
         }
 
         function validarEtapa2() {
-            if (colaboradoresCheckout.length === 0) {
-                mostrarPopup('⚠️ Colaboradores Obrigatórios', 'Por favor, adicione pelo menos um colaborador.');
-                return;
-            }
-
-            // Esconder etapa 2, mostrar etapa 3
             document.getElementById('etapa-2').classList.add('hidden');
             document.getElementById('etapa-3').classList.remove('hidden');
-            
-            // Preencher resumo
             document.getElementById('resumo-plano').innerText = planoSelecionado.nome;
             document.getElementById('resumo-total').innerText = 'R$ ' + planoSelecionado.preco + '/mês';
         }
 
-        function voltarEtapa2() {
-            document.getElementById('etapa-2').classList.add('hidden');
-            document.getElementById('etapa-1').classList.remove('hidden');
-        }
-
-        function voltarEtapa3() {
-            document.getElementById('etapa-3').classList.add('hidden');
-            document.getElementById('etapa-2').classList.remove('hidden');
-        }
+        function voltarEtapa2() { document.getElementById('etapa-2').classList.add('hidden'); document.getElementById('etapa-1').classList.remove('hidden'); }
+        function voltarEtapa3() { document.getElementById('etapa-3').classList.add('hidden'); document.getElementById('etapa-2').classList.remove('hidden'); }
 
         async function finalizarCadastro() {
-            const cartaoNome = document.getElementById('cartao-nome').value.trim();
-            const cartaoNumero = document.getElementById('cartao-numero').value.trim();
-            const cartaoValidade = document.getElementById('cartao-validade').value.trim();
-            const cartaoCVV = document.getElementById('cartao-cvv').value.trim();
-            const metodoPagamento = document.getElementById('metodo-pagamento').value;
-
-            // Validações básicas
-            if (!cartaoNome || !cartaoNumero || !cartaoValidade || !cartaoCVV) {
-                mostrarPopup('⚠️ Dados do Cartão', 'Por favor, preencha todos os dados do cartão.');
-                return;
-            }
-
-            if (metodoPagamento === 'credito' || metodoPagamento === 'debito') {
-                if (cartaoNumero.replace(/\s/g, '').length < 16) {
-                    mostrarPopup('⚠️ Cartão Inválido', 'Número do cartão inválido.');
-                    return;
-                }
-                if (cartaoCVV.length < 3) {
-                    mostrarPopup('⚠️ CVV Inválido', 'CVV inválido.');
-                    return;
-                }
-            }
-
-            // Montar objeto final
-            const dadosCompletos = {
-                plano: planoSelecionado,
-                clinica: dadosClinica,
-                colaboradores: colaboradoresCheckout,
-                pagamento: {
-                    titular: cartaoNome,
-                    numero: cartaoNumero,
-                    validade: cartaoValidade,
-                    cvv: cartaoCVV,
-                    metodo: metodoPagamento
-                }
-            };
-
             try {
-                // Enviar para o servidor
                 const response = await fetch('http://localhost:8080/api/assinatura-completa', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         clinica: {
                             nome: dadosClinica.nome,
                             cnpj: dadosClinica.cnpj,
                             telefone: dadosClinica.telefone,
                             emailAdmin: dadosClinica.email,
-                            senhaAdmin: dadosClinica.senha,
-                            cep: dadosClinica.telefone // Usando telefone como CEP temporariamente
+                            senhaAdmin: dadosClinica.senha
                         },
                         colaboradores: colaboradoresCheckout
                     })
@@ -1116,33 +909,16 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    // Adicionar colaboradores na equipe da nova clínica
-                    colaboradoresCheckout.forEach(colab => {
-                        equipe.push({
-                            id: Date.now() + Math.random(),
-                            nome: colab.nome,
-                            cpf: colab.cpf,
-                            cargo: colab.cargo,
-                            email: colab.email,
-                            status: 'Ativo',
-                            ultimoAcesso: 'Nunca'
-                        });
-                    });
-
-                    mostrarPopup('✅ Cadastro Concluído', 'Cadastro realizado com sucesso! Seu sistema Mundo Pet está ativado.');
-                    
-                    // Limpar dados temporários do checkout
+                    mostrarPopup('✅ Cadastro Concluído', 'Cadastro realizado com sucesso! Faça seu login para começar.');
                     planoSelecionado = { nome: '', preco: 0 };
                     dadosClinica = {};
                     colaboradoresCheckout = [];
-                    
                     irPara('tela-login');
                 } else {
-                    mostrarPopup('❌ Erro no Cadastro', result.error || 'Erro ao processar cadastro. Tente novamente.');
+                    mostrarPopup('❌ Erro no Cadastro', result.error || 'Erro ao processar cadastro.');
                 }
             } catch (error) {
-                console.error('Erro:', error);
-                mostrarPopup('🔌 Erro de Conexão', 'Erro de conexão. Verifique se o servidor está rodando na porta 8080.');
+                mostrarPopup('🔌 Erro', 'Verifique se o servidor está rodando na porta 8080.');
             }
         }
     </script>

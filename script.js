@@ -7,13 +7,12 @@ const app = express();
 const port = 8080;
 const SECRET_KEY = "MundoPet_Security_2026_PIM";
 
-// Configurações
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Inicialização do Banco de Dados
-const db = new sqlite3.Database('./mundopet.db');
+// Alterado o nome do banco para criar um do zero com as colunas corretas (CPF, Status, Estoque)
+const db = new sqlite3.Database('./mundopet_persistente.db');
 
 db.serialize(() => {
     console.log("🛠️  Configurando banco de dados...");
@@ -29,9 +28,11 @@ db.serialize(() => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         clinic_id INTEGER,
         nome TEXT,
+        cpf TEXT,
         email TEXT UNIQUE,
         senha TEXT,
         role TEXT,
+        status TEXT DEFAULT 'Ativo',
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
     )`);
 
@@ -46,9 +47,20 @@ db.serialize(() => {
         metodo TEXT,
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
     )`);
+
+    // Nova tabela para garantir a persistência do estoque
+    db.run(`CREATE TABLE IF NOT EXISTS estoque (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clinic_id INTEGER,
+        nome TEXT,
+        lote TEXT,
+        val TEXT,
+        qtd INTEGER,
+        FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
+    )`);
 });
 
-// --- ROTAS DE AUTENTICAÇÃO ---
+// --- ROTAS DE AUTENTICAÇÃO E CADASTRO ---
 
 app.post('/api/login', (req, res) => {
     const { email, senha } = req.body;
@@ -62,16 +74,32 @@ app.post('/api/login', (req, res) => {
     });
 });
 
-app.post('/api/registro-completo', (req, res) => {
-    const { nomeClinica, cnpj, telefone, nomeAdmin, email, senha } = req.body;
+app.post('/api/assinatura-completa', (req, res) => {
+    const { clinica, colaboradores } = req.body;
 
-    db.run(`INSERT INTO clinicas (nome, cnpj, telefone) VALUES (?, ?, ?)`, [nomeClinica, cnpj, telefone], function(err) {
+    db.run(`INSERT INTO clinicas (nome, cnpj, telefone) VALUES (?, ?, ?)`, [clinica.nome, clinica.cnpj, clinica.telefone], function(err) {
         if (err) return res.status(400).json({ error: "CNPJ já cadastrado ou erro no banco." });
         
         const clinicaId = this.lastID;
-        db.run(`INSERT INTO usuarios (clinic_id, nome, email, senha, role) VALUES (?, ?, ?, ?, ?)`, 
-        [clinicaId, nomeAdmin, email, senha, 'admin'], function(err) {
-            if (err) return res.status(400).json({ error: "E-mail já cadastrado." });
+        
+        // Insere o admin principal
+        db.run(`INSERT INTO usuarios (clinic_id, nome, cpf, email, senha, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+        [clinicaId, 'Admin Master', '', clinica.emailAdmin, clinica.senhaAdmin, 'Administrador', 'Ativo'], function(err) {
+            
+            // Insere colaboradores do checkout
+            if(colaboradores && colaboradores.length > 0) {
+                const stmt = db.prepare(`INSERT INTO usuarios (clinic_id, nome, cpf, email, senha, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+                colaboradores.forEach(c => stmt.run([clinicaId, c.nome, c.cpf, c.email, '123456', c.cargo, 'Ativo']));
+                stmt.finalize();
+            }
+
+            // Popula um estoque inicial padrão para demonstração
+            const stmtEstoque = db.prepare(`INSERT INTO estoque (clinic_id, nome, lote, val, qtd) VALUES (?, ?, ?, ?, ?)`);
+            stmtEstoque.run([clinicaId, 'Vacina V10', 'V-2901', '10/2026', 12]);
+            stmtEstoque.run([clinicaId, 'Antipulgas Bravecto', 'B-1120', '02/2027', 4]);
+            stmtEstoque.run([clinicaId, 'Ração Premier 15kg', 'R-009', '12/2026', 8]);
+            stmtEstoque.finalize();
+
             res.json({ success: true, message: "Sistema ativado com sucesso!" });
         });
     });
@@ -80,42 +108,53 @@ app.post('/api/registro-completo', (req, res) => {
 // --- ROTAS DE COLABORADORES ---
 
 app.post('/api/colaborador', (req, res) => {
-    const { nome, email, senha, cargo, clinica_id } = req.body;
-    
-    // Verificar se email já existe
+    const { nome, cpf, email, senha, cargo, clinica_id } = req.body;
     db.get(`SELECT email FROM usuarios WHERE email = ?`, [email], (err, row) => {
         if (err) return res.status(500).json({ error: "Erro interno no servidor." });
         if (row) return res.status(400).json({ error: "E-mail já cadastrado no sistema." });
         
-        // Inserir novo colaborador - Alinhado com a coluna clinic_id
-        db.run(`INSERT INTO usuarios (clinic_id, nome, email, senha, role) VALUES (?, ?, ?, ?, ?)`, 
-        [clinica_id, nome, email, senha, cargo], function(err) {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ error: "Erro ao cadastrar colaborador." });
-            }
+        db.run(`INSERT INTO usuarios (clinic_id, nome, cpf, email, senha, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+        [clinica_id, nome, cpf, email, senha, cargo, 'Ativo'], function(err) {
+            if (err) return res.status(500).json({ error: "Erro ao cadastrar colaborador." });
             res.json({ success: true, message: "Colaborador cadastrado com sucesso!", id: this.lastID });
         });
     });
 });
 
-app.get('/api/colaboradores/:clinica_id', (req, res) => {
-    const { clinica_id } = req.params;
-    
-    // Busca todos os usuários vinculados àquela clínica
-    db.all(`SELECT id, nome, email, role as cargo FROM usuarios WHERE clinic_id = ?`, [clinica_id], (err, rows) => {
-        if (err) return res.status(500).json({ error: "Erro ao buscar colaboradores." });
-        res.json(rows);
+app.put('/api/colaborador/:id', (req, res) => {
+    const { nome, cpf, email, cargo } = req.body;
+    db.run(`UPDATE usuarios SET nome = ?, cpf = ?, email = ?, role = ? WHERE id = ?`,
+        [nome, cpf, email, cargo, req.params.id], err => {
+            if (err) return res.status(500).json({ error: "Erro ao atualizar." });
+            res.json({ success: true });
     });
 });
 
-// --- FINANCEIRO ---
+app.put('/api/colaborador/:id/status', (req, res) => {
+    const { status } = req.body;
+    db.run(`UPDATE usuarios SET status = ? WHERE id = ?`, [status, req.params.id], err => {
+        if (err) return res.status(500).json({ error: "Erro ao atualizar status." });
+        res.json({ success: true });
+    });
+});
+
+app.get('/api/colaboradores/:clinica_id', (req, res) => {
+    db.all(`SELECT id, nome, cpf, email, role as cargo, status FROM usuarios WHERE clinic_id = ?`, [req.params.clinica_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Erro ao buscar colaboradores." });
+        // Adiciona campo fictício de último acesso
+        res.json(rows.map(r => ({ ...r, ultimoAcesso: 'Hoje' })));
+    });
+});
+
+// --- ROTAS FINANCEIRAS ---
 
 app.get('/api/transacoes/:clinica_id', (req, res) => {
-    const { clinica_id } = req.params;
-    db.all(`SELECT * FROM transacoes WHERE clinic_id = ? ORDER BY data DESC`, [clinica_id], (err, rows) => {
+    db.all(`SELECT * FROM transacoes WHERE clinic_id = ? ORDER BY id DESC`, [req.params.clinica_id], (err, rows) => {
         if (err) return res.status(500).json({ error: "Erro ao buscar transações." });
-        res.json(rows);
+        // Mapeia para os nomes de propriedades que o frontend espera (desc, cat)
+        res.json(rows.map(r => ({
+            id: r.id, data: r.data, desc: r.descricao, cat: r.categoria, valor: r.valor, tipo: r.tipo, metodo: r.metodo
+        })));
     });
 });
 
@@ -125,6 +164,39 @@ app.post('/api/transacoes', (req, res) => {
     [clinic_id, data, descricao, categoria, valor, tipo, metodo], function(err) {
         if (err) return res.status(500).json({ error: "Erro ao salvar transação." });
         res.json({ success: true, id: this.lastID });
+    });
+});
+
+app.put('/api/transacoes/:id', (req, res) => {
+    const { data, descricao, categoria, valor, tipo, metodo } = req.body;
+    db.run(`UPDATE transacoes SET data=?, descricao=?, categoria=?, valor=?, tipo=?, metodo=? WHERE id=?`,
+        [data, descricao, categoria, valor, tipo, metodo, req.params.id], err => {
+            if (err) return res.status(500).json({ error: "Erro ao atualizar transação." });
+            res.json({ success: true });
+        });
+});
+
+app.delete('/api/transacoes/:id', (req, res) => {
+    db.run(`DELETE FROM transacoes WHERE id = ?`, [req.params.id], err => {
+        if (err) return res.status(500).json({ error: "Erro ao deletar transação." });
+        res.json({ success: true });
+    });
+});
+
+// --- ROTAS DE ESTOQUE ---
+
+app.get('/api/estoque/:clinica_id', (req, res) => {
+    db.all(`SELECT * FROM estoque WHERE clinic_id = ?`, [req.params.clinica_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Erro ao buscar estoque." });
+        res.json(rows);
+    });
+});
+
+app.put('/api/estoque/:id/ajustar', (req, res) => {
+    const { qtd } = req.body;
+    db.run(`UPDATE estoque SET qtd = ? WHERE id = ?`, [qtd, req.params.id], err => {
+        if (err) return res.status(500).json({ error: "Erro ao atualizar estoque." });
+        res.json({ success: true });
     });
 });
 
