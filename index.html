@@ -483,23 +483,54 @@
                                     <input id="config-email-contato" value="${clinicaLogada.email_contato || ''}" class="input-pet">
                                 </div>
                                 <div>
-                                    <label class="text-xs font-bold text-gray-500 mb-1 block">URL do Logotipo (Imagem)</label>
-                                    <input id="config-logo-clinica" value="${clinicaLogada.logo || ''}" placeholder="https://link-da-imagem.com/logo.png" class="input-pet">
-                                    <p class="text-xs text-gray-400 mt-1">Cole o link (URL) de uma imagem hospedada na internet para usar como logo.</p>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Logotipo da Clínica (Imagem)</label>
+                                    <div class="flex items-center gap-3">
+                                        <img id="preview-logo" src="${clinicaLogada.logo || ''}" class="w-12 h-12 rounded-full object-cover border" style="${clinicaLogada.logo ? '' : 'display:none;'}">
+                                        <input type="file" id="config-logo-clinica" accept="image/*" class="input-pet" onchange="previewLogoFile(this)">
+                                    </div>
+                                    <input type="hidden" id="config-logo-base64" value="${clinicaLogada.logo || ''}">
+                                    <p class="text-xs text-gray-400 mt-1">Selecione uma imagem do seu computador (será salva no banco).</p>
                                 </div>
-                                
+
                                 <h4 class="text-lg font-bold mt-6 mb-2 border-b pb-1">Personalização do Sistema</h4>
+
                                 <div>
-                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Categorias de Prontuários (Separados por vírgula)</label>
-                                    <input id="config-categorias-prontuario" value="${clinicaLogada.categorias_prontuario || ''}" class="input-pet">
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Categorias de Prontuários</label>
+                                    <div class="flex gap-2 mb-2">
+                                        <select id="config-categorias-prontuario-select" class="input-pet flex-grow"></select>
+                                        <button onclick="removerOpcao('config-categorias-prontuario-select', 'config-categorias-prontuario-hidden')" class="bg-red-100 text-red-600 px-3 rounded-lg font-bold hover:bg-red-200">Remover</button>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input id="nova-categoria-prontuario" placeholder="Nova categoria..." class="input-pet flex-grow">
+                                        <button onclick="adicionarOpcao('nova-categoria-prontuario', 'config-categorias-prontuario-select', 'config-categorias-prontuario-hidden')" class="bg-green-100 text-green-600 px-3 rounded-lg font-bold hover:bg-green-200">Adicionar</button>
+                                    </div>
+                                    <input type="hidden" id="config-categorias-prontuario-hidden" value="${clinicaLogada.categorias_prontuario || ''}">
                                 </div>
-                                <div>
-                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Tipos de Animais Atendidos (Separados por vírgula)</label>
-                                    <input id="config-tipos-animais" value="${clinicaLogada.tipos_animais || ''}" class="input-pet">
+
+                                <div class="mt-4">
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Tipos de Animais Atendidos</label>
+                                    <div class="flex gap-2 mb-2">
+                                        <select id="config-tipos-animais-select" class="input-pet flex-grow"></select>
+                                        <button onclick="removerOpcao('config-tipos-animais-select', 'config-tipos-animais-hidden')" class="bg-red-100 text-red-600 px-3 rounded-lg font-bold hover:bg-red-200">Remover</button>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input id="novo-tipo-animal" placeholder="Novo tipo..." class="input-pet flex-grow">
+                                        <button onclick="adicionarOpcao('novo-tipo-animal', 'config-tipos-animais-select', 'config-tipos-animais-hidden')" class="bg-green-100 text-green-600 px-3 rounded-lg font-bold hover:bg-green-200">Adicionar</button>
+                                    </div>
+                                    <input type="hidden" id="config-tipos-animais-hidden" value="${clinicaLogada.tipos_animais || ''}">
                                 </div>
-                                <div>
-                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Cargos da Equipe (Ex: Administrador, Veterinário, Faxineiro)</label>
-                                    <input id="config-cargos" value="${clinicaLogada.cargos || ''}" class="input-pet">
+
+                                <div class="mt-4">
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Cargos da Equipe</label>
+                                    <div class="flex gap-2 mb-2">
+                                        <select id="config-cargos-select" class="input-pet flex-grow"></select>
+                                        <button onclick="removerOpcao('config-cargos-select', 'config-cargos-hidden')" class="bg-red-100 text-red-600 px-3 rounded-lg font-bold hover:bg-red-200">Remover</button>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input id="novo-cargo" placeholder="Novo cargo..." class="input-pet flex-grow">
+                                        <button onclick="adicionarOpcao('novo-cargo', 'config-cargos-select', 'config-cargos-hidden')" class="bg-green-100 text-green-600 px-3 rounded-lg font-bold hover:bg-green-200">Adicionar</button>
+                                    </div>
+                                    <input type="hidden" id="config-cargos-hidden" value="${clinicaLogada.cargos || ''}">
                                 </div>
                                 
                                 <button onclick="salvarConfiguracoesClinica()" class="btn-principal px-6 py-2 rounded-xl font-bold mt-4">Salvar Configurações</button>
@@ -521,6 +552,11 @@
                         </div>
                     </div>
                 `;
+                setTimeout(() => {
+            inicializarSelect('config-categorias-prontuario-select', clinicaLogada.categorias_prontuario);
+            inicializarSelect('config-tipos-animais-select', clinicaLogada.tipos_animais);
+            inicializarSelect('config-cargos-select', clinicaLogada.cargos);
+        }, 100);
             }
         }
 
@@ -1152,48 +1188,39 @@
         }
 
         async function salvarConfiguracoesClinica() {
+            async function salvarConfiguracoesClinica() {
             const novoNome = document.getElementById('config-nome-clinica').value;
-            const novaLogo = document.getElementById('config-logo-clinica').value;
             const novoCNPJ = document.getElementById('config-cnpj-clinica').value;
             const novoTelefone = document.getElementById('config-telefone-clinica').value;
             const novoEndereco = document.getElementById('config-endereco-clinica').value;
-            const novoEmailContato = document.getElementById('config-email-contato').value;
-            const novasCategorias = document.getElementById('config-categorias-prontuario').value;
-            const novosTiposAnimais = document.getElementById('config-tipos-animais').value;
-            const novosCargos = document.getElementById('config-cargos').value;
-
-            if(!novoNome) return mostrarPopup('⚠️ Atenção', 'O nome da clínica não pode ficar vazio.');
+            const novoEmail = document.getElementById('config-email-contato').value;
+            
+            // Novos campos: Logo em Base64 e os campos em lista escondidos
+            const novoLogo = document.getElementById('config-logo-base64').value;
+            const novasCategorias = document.getElementById('config-categorias-prontuario-hidden').value;
+            const novosAnimais = document.getElementById('config-tipos-animais-hidden').value;
+            const novosCargos = document.getElementById('config-cargos-hidden').value;
 
             try {
-                const res = await fetch(`http://localhost:8080/api/clinica/${clinicaId}`, {
+                const res = await fetch(`http://localhost:8080/api/clinica/${clinicaLogada.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        nome: novoNome, 
-                        logotipo: novaLogo,
-                        cnpj: novoCNPJ,
-                        telefone: novoTelefone,
-                        endereco: novoEndereco,
-                        email_contato: novoEmailContato,
-                        categorias_prontuario: novasCategorias,
-                        tipos_animais: novosTiposAnimais,
-                        cargos: novosCargos
+                        nome: novoNome, cnpj: novoCNPJ, telefone: novoTelefone, 
+                        endereco: novoEndereco, logotipo: novoLogo, email_contato: novoEmail, 
+                        categorias_prontuario: novasCategorias, tipos_animais: novosAnimais, cargos: novosCargos 
                     })
                 });
 
                 if (res.ok) {
                     clinicaLogada.nomeClinica = novoNome;
-                    clinicaLogada.logo = novaLogo;
-                    clinicaLogada.cnpj = novoCNPJ;
-                    clinicaLogada.telefone = novoTelefone;
-                    clinicaLogada.endereco = novoEndereco;
-                    clinicaLogada.email_contato = novoEmailContato;
+                    clinicaLogada.logo = novoLogo;
                     clinicaLogada.categorias_prontuario = novasCategorias;
-                    clinicaLogada.tipos_animais = novosTiposAnimais;
+                    clinicaLogada.tipos_animais = novosAnimais;
                     clinicaLogada.cargos = novosCargos;
-                    
+
                     document.getElementById('clinica-tag').innerText = novoNome;
-                    atualizarLogoSidebar();
+                    if(typeof atualizarLogoSidebar === 'function') atualizarLogoSidebar();
                     mostrarPopup('✅ Sucesso', 'Configurações da clínica atualizadas!');
                 } else {
                     mostrarPopup('❌ Erro', 'Não foi possível atualizar a clínica.');
@@ -1201,6 +1228,7 @@
             } catch(e) {
                 mostrarPopup('❌ Erro', 'Falha na conexão com o servidor.');
             }
+        }
         }
         async function salvarNovaSenha() {
             const novaSenha = document.getElementById('config-nova-senha').value;
@@ -1224,6 +1252,74 @@
             } catch(e) {
                 mostrarPopup('❌ Erro', 'Falha na conexão com o servidor.');
             }
+        }
+        // Funções adicionadas para lidar com upload de arquivo (imagem) e Selects dinâmicos
+        function previewLogoFile(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('config-logo-base64').value = e.target.result;
+                    const preview = document.getElementById('preview-logo');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function inicializarSelect(selectId, valoresString) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            select.innerHTML = '';
+            if (valoresString) {
+                const valores = valoresString.split(',').map(v => v.trim()).filter(v => v);
+                valores.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.innerText = v;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        function adicionarOpcao(inputId, selectId, hiddenId) {
+            const input = document.getElementById(inputId);
+            const select = document.getElementById(selectId);
+            const valor = input.value.trim();
+            if (valor) {
+                let existe = false;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value.toLowerCase() === valor.toLowerCase()) existe = true;
+                }
+                if (!existe) {
+                    const opt = document.createElement('option');
+                    opt.value = valor;
+                    opt.innerText = valor;
+                    select.appendChild(opt);
+                    atualizarHidden(selectId, hiddenId);
+                    input.value = '';
+                } else {
+                    mostrarPopup('⚠️ Atenção', 'Esta opção já existe na lista.');
+                }
+            }
+        }
+
+        function removerOpcao(selectId, hiddenId) {
+            const select = document.getElementById(selectId);
+            if (select.selectedIndex !== -1) {
+                select.remove(select.selectedIndex);
+                atualizarHidden(selectId, hiddenId);
+            }
+        }
+
+        function atualizarHidden(selectId, hiddenId) {
+            const select = document.getElementById(selectId);
+            const valores = [];
+            for (let i = 0; i < select.options.length; i++) {
+                valores.push(select.options[i].value);
+            }
+            document.getElementById(hiddenId).value = valores.join(', ');
         }
     </script>
 </body>
