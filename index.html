@@ -179,9 +179,17 @@
 
     <div id="app-container" class="hidden h-screen flex">
         <aside class="w-64 bg-white border-r p-6 flex flex-col no-print">
-            <div class="text-2xl font-black text-blue-600 mb-10 italic">🐾 Mundo Pet</div>
+            <div id="clinica-logo-container" class="text-2xl font-black text-blue-600 mb-10 italic flex items-center gap-2">
+                🐾 Mundo Pet
+            </div>
+            
             <nav id="menu-lateral" class="flex-grow space-y-1"></nav>
-            <button onclick="location.reload()" class="text-red-500 font-bold p-4 hover:bg-red-50 rounded-xl text-left">Sair</button>
+            
+            <div id="menu-configuracoes" class="hidden mb-2">
+                <div onclick="navegarModulo('configuracoes')" class="sidebar-item" id="m-configuracoes">⚙️ Configurações</div>
+            </div>
+            
+            <button onclick="location.reload()" class="text-red-500 font-bold p-4 hover:bg-red-50 rounded-xl text-left mt-auto">Sair</button>
         </aside>
 
         <main class="flex-grow p-10 bg-gray-50 overflow-y-auto">
@@ -326,9 +334,17 @@
 
                 if (data.success) {
                     clinicaId = data.user.clinic_id;
-                    clinicaLogada = { nome: `Clínica ${data.user.clinic_id}`, id: data.user.clinic_id };
+                    clinicaLogada = { nome: data.user.nome, id: data.user.clinic_id, email: data.user.email, role: data.user.role };
                     
                     try {
+                        // Buscar os dados da clínica para pegar Nome e Logo reais
+                        const clinicaRes = await fetch(`http://localhost:8080/api/clinica/${clinicaId}`);
+                        if(clinicaRes.ok) {
+                            const clinicaDados = await clinicaRes.json();
+                            clinicaLogada.nomeClinica = clinicaDados.nome;
+                            clinicaLogada.logo = clinicaDados.logo;
+                        }
+
                         const colabRes = await fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`);
                         if(colabRes.ok) equipe = await colabRes.json();
 
@@ -343,7 +359,18 @@
                     }
                     
                     irPara('app-container');
-                    document.getElementById('clinica-tag').innerText = clinicaLogada.nome;
+                    document.getElementById('clinica-tag').innerText = clinicaLogada.nomeClinica || `Clínica ${clinicaId}`;
+                    
+                    // Mostra ou esconde o botão de configurações baseado no papel (role)
+                    if (clinicaLogada.role === 'admin' || roleAtiva === 'admin') {
+                        document.getElementById('menu-configuracoes').classList.remove('hidden');
+                    } else {
+                        document.getElementById('menu-configuracoes').classList.add('hidden');
+                    }
+
+                    // Atualiza a logo no menu lateral
+                    atualizarLogoSidebar();
+
                     montarMenu();
                     navegarModulo('financeiro');
                 } else {
@@ -417,6 +444,43 @@
             } else if(mod === 'auditoria') {
                 tit.innerText = "Logs de Auditoria";
                 cont.innerHTML = `<div class="card"><table><thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th></tr></thead><tbody><tr><td>12/04 16:30</td><td>Admin Carlos</td><td>Alterou Status Equipe: Ana Paula</td></tr></tbody></table></div>`;
+            
+            // --- CÓDIGO ADICIONADO PARA CONFIGURAÇÕES ---
+            } else if(mod === 'configuracoes') {
+                tit.innerText = "Configurações do Sistema";
+                cont.innerHTML = `
+                <div class="max-w-2xl">
+                    <div class="card mb-6">
+                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Informações da Clínica</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Nome da Clínica</label>
+                                <input id="config-nome-clinica" value="${clinicaLogada.nomeClinica || ''}" class="input-pet">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">URL do Logotipo (Imagem)</label>
+                                <input id="config-logo-clinica" value="${clinicaLogada.logo || ''}" placeholder="https://link-da-imagem.com/logo.png" class="input-pet">
+                                <p class="text-xs text-gray-400 mt-1">Cole o link (URL) de uma imagem hospedada na internet para usar como logo.</p>
+                            </div>
+                            <button onclick="salvarConfiguracoesClinica()" class="btn-principal px-6 py-2 rounded-xl font-bold mt-2">Salvar Dados da Clínica</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Segurança da Conta</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Acesso Atual</label>
+                                <input value="${clinicaLogada.email || ''}" class="input-pet bg-gray-100 text-gray-500 cursor-not-allowed" disabled>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Nova Senha</label>
+                                <input id="config-nova-senha" type="password" placeholder="Mínimo de 6 caracteres" class="input-pet">
+                            </div>
+                            <button onclick="salvarNovaSenha()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl font-bold mt-2 transition">Alterar Senha</button>
+                        </div>
+                    </div>
+                </div>`;
             }
         }
 
@@ -1036,6 +1100,63 @@
                 }
             } catch (error) {
                 mostrarPopup('🔌 Erro', 'Verifique se o servidor está rodando na porta 8080.');
+            }
+        }
+        function atualizarLogoSidebar() {
+            const container = document.getElementById('clinica-logo-container');
+            if (clinicaLogada.logo) {
+                container.innerHTML = `<img src="${clinicaLogada.logo}" alt="Logo Clínica" class="w-8 h-8 rounded-full object-cover"> <span class="truncate text-lg">${clinicaLogada.nomeClinica}</span>`;
+            } else {
+                container.innerHTML = `🐾 Mundo Pet`;
+            }
+        }
+
+        async function salvarConfiguracoesClinica() {
+            const novoNome = document.getElementById('config-nome-clinica').value;
+            const novaLogo = document.getElementById('config-logo-clinica').value;
+
+            try {
+                const res = await fetch(`http://localhost:8080/api/clinica/${clinicaId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: novoNome, logo: novaLogo })
+                });
+
+                if (res.ok) {
+                    clinicaLogada.nomeClinica = novoNome;
+                    clinicaLogada.logo = novaLogo;
+                    document.getElementById('clinica-tag').innerText = novoNome;
+                    atualizarLogoSidebar();
+                    mostrarPopup('✅ Sucesso', 'Dados da clínica atualizados!');
+                } else {
+                    mostrarPopup('❌ Erro', 'Não foi possível atualizar a clínica.');
+                }
+            } catch(e) {
+                mostrarPopup('❌ Erro', 'Falha na conexão com o servidor.');
+            }
+        }
+
+        async function salvarNovaSenha() {
+            const novaSenha = document.getElementById('config-nova-senha').value;
+            if (!novaSenha || novaSenha.length < 6) {
+                return mostrarPopup('⚠️ Atenção', 'A senha deve ter pelo menos 6 caracteres.');
+            }
+
+            try {
+                const res = await fetch(`http://localhost:8080/api/usuario/senha`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: clinicaLogada.email, senha: novaSenha })
+                });
+
+                if (res.ok) {
+                    document.getElementById('config-nova-senha').value = '';
+                    mostrarPopup('✅ Sucesso', 'Senha alterada com sucesso!');
+                } else {
+                    mostrarPopup('❌ Erro', 'Não foi possível alterar a senha.');
+                }
+            } catch(e) {
+                mostrarPopup('❌ Erro', 'Falha na conexão com o servidor.');
             }
         }
     </script>
