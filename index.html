@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mundo Pet - Gestão Administrativa V5</title>
+    <title>Mundo Pet - Gestão Administrativa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -19,6 +19,21 @@
         .sidebar-item.active { background-color: #3b82f6; color: white; }
         .btn-voltar { position: absolute; top: 25px; left: 25px; font-weight: 800; color: #3b82f6; cursor: pointer; z-index: 100; }
         
+        .popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .popup-content { background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 30px; position: relative; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .popup-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; color: #1f2937; }
+        .popup-message { margin-bottom: 1.5rem; color: #6b7280; line-height: 1.5; }
+        .popup-button { width: 100%; padding: 12px 24px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: all 0.3s; border: none; }
+        .popup-button-primary { background: linear-gradient(90deg, #10b981, #3b82f6); color: white; }
+        .popup-button-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        
+        .etapa-checkout { width: 95%; max-width: 500px; margin: 0 auto; }
+        @media (max-width: 640px) {
+            .etapa-checkout { width: 98%; padding: 15px; }
+            .card { padding: 15px; }
+            .popup-content { width: 95%; padding: 20px; }
+        }
+        
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f5f9; color: #64748b; font-size: 11px; text-transform: uppercase; }
         td { padding: 12px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 13px; }
@@ -26,7 +41,7 @@
         .status-badge:hover { opacity: 0.8; }
         
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 30px; position: relative; }
+        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px; padding: 30px; position: relative; max-height: 90vh; overflow-y: auto; }
         
         @media print {
             .no-print { display: none !important; }
@@ -63,13 +78,86 @@
 
     <div id="tela-checkout" class="hidden min-h-screen bg-gray-100 flex items-center justify-center relative p-6">
         <div class="btn-voltar no-print" onclick="irPara('tela-planos')">← VOLTAR</div>
-        <div class="card w-full max-w-lg">
-            <h3 class="text-2xl font-bold mb-6">Finalizar Cadastro</h3>
-            <input id="ass-nome" placeholder="Nome da Clínica" class="input-pet mb-3">
-            <input id="ass-email-admin" type="email" placeholder="E-mail Administrativo" class="input-pet mb-3">
-            <input id="ass-senha" type="password" placeholder="Senha de Acesso" class="input-pet mb-6">
-            <p id="info-plano-final" class="text-sm text-blue-500 font-bold mb-4"></p>
-            <button onclick="processarAssinatura()" class="w-full btn-principal py-4 rounded-xl font-bold">Ativar Sistema</button>
+        
+        <div id="etapa-1" class="etapa-checkout card w-full max-w-lg">
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">1</div><span class="font-bold text-blue-600">Dados da Clínica</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">2</div><span class="text-gray-400">Colaboradores</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">3</div><span class="text-gray-400">Pagamento</span></div>
+                </div>
+            </div>
+            
+            <h3 class="text-2xl font-bold mb-6">Informações da Clínica</h3>
+            <div class="space-y-4">
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Nome da Clínica</label><input id="clinica-nome" placeholder="Ex: Clínica Veterinária Pet Vida" class="input-pet"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">CNPJ</label><input id="clinica-cnpj" placeholder="00.000.000/0001-00" class="input-pet" onkeyup="mascaraCNPJ(this)"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Telefone</label><input id="clinica-telefone" placeholder="(11) 99999-9999" class="input-pet" onkeyup="mascaraTelefone(this)"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">E-mail Administrativo</label><input id="clinica-email" type="email" placeholder="admin@clinica.com" class="input-pet"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Senha de Acesso</label><input id="clinica-senha" type="password" placeholder="Mínimo 6 caracteres" class="input-pet"></div>
+            </div>
+            <p id="info-plano-etapa1" class="text-sm text-blue-500 font-bold mt-4"></p>
+            <button onclick="validarEtapa1()" class="w-full btn-principal py-4 rounded-xl font-bold mt-6">Continuar</button>
+        </div>
+
+        <div id="etapa-2" class="etapa-checkout card w-full max-w-lg hidden">
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div><span class="font-bold text-green-600">Dados da Clínica</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">2</div><span class="font-bold text-blue-600">Colaboradores</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center font-bold text-sm">3</div><span class="text-gray-400">Pagamento</span></div>
+                </div>
+            </div>
+            
+            <h3 class="text-2xl font-bold mb-6">Cadastro de Colaboradores</h3>
+            <div class="space-y-4">
+                <div id="colaboradores-lista"></div>
+                <button onclick="adicionarColaborador()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition">+ Adicionar Colaborador</button>
+            </div>
+            <div class="flex gap-4 mt-6">
+                <button onclick="voltarEtapa2()" class="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold">Voltar</button>
+                <button onclick="validarEtapa2()" class="flex-1 btn-principal py-4 rounded-xl font-bold">Continuar</button>
+            </div>
+        </div>
+
+        <div id="etapa-3" class="etapa-checkout card w-full max-w-lg hidden">
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div><span class="font-bold text-green-600">Dados da Clínica</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">✓</div><span class="font-bold text-green-600">Colaboradores</span></div>
+                    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">3</div><span class="font-bold text-blue-600">Pagamento</span></div>
+                </div>
+            </div>
+            
+            <h3 class="text-2xl font-bold mb-6">Informações de Pagamento</h3>
+            <div class="space-y-4">
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Titular do Cartão</label><input id="cartao-nome" placeholder="Como está no cartão" class="input-pet"></div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Número do Cartão</label><input id="cartao-numero" placeholder="0000 0000 0000 0000" class="input-pet" onkeyup="mascaraCartao(this)"></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-xs font-bold text-gray-500 mb-1 block">Validade</label><input id="cartao-validade" placeholder="MM/AA" class="input-pet" onkeyup="mascaraValidade(this)"></div>
+                    <div><label class="text-xs font-bold text-gray-500 mb-1 block">CVV</label><input id="cartao-cvv" placeholder="123" class="input-pet" onkeyup="mascaraCVV(this)" maxlength="4"></div>
+                </div>
+                <div><label class="text-xs font-bold text-gray-500 mb-1 block">Método de Pagamento</label>
+                    <select id="metodo-pagamento" class="input-pet">
+                        <option value="credito">Cartão de Crédito</option>
+                        <option value="debito">Cartão de Débito</option>
+                        <option value="pix">Pix</option>
+                        <option value="boleto">Boleto Bancário</option>
+                    </select>
+                </div>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl mt-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-gray-600">Plano Selecionado:</span><span id="resumo-plano" class="font-bold text-blue-600"></span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold">Total:</span><span id="resumo-total" class="text-2xl font-bold text-blue-600"></span>
+                </div>
+            </div>
+            <div class="flex gap-4 mt-6">
+                <button onclick="voltarEtapa3()" class="flex-1 bg-gray-200 text-gray-700 py-4 rounded-xl font-bold">Voltar</button>
+                <button onclick="finalizarCadastro()" class="flex-1 btn-principal py-4 rounded-xl font-bold">Finalizar Cadastro</button>
+            </div>
         </div>
     </div>
 
@@ -91,9 +179,17 @@
 
     <div id="app-container" class="hidden h-screen flex">
         <aside class="w-64 bg-white border-r p-6 flex flex-col no-print">
-            <div class="text-2xl font-black text-blue-600 mb-10 italic">🐾 Mundo Pet</div>
+            <div id="clinica-logo-container" class="text-2xl font-black text-blue-600 mb-10 italic flex items-center gap-2">
+                🐾 Mundo Pet
+            </div>
+            
             <nav id="menu-lateral" class="flex-grow space-y-1"></nav>
-            <button onclick="location.reload()" class="text-red-500 font-bold p-4 hover:bg-red-50 rounded-xl text-left">Sair</button>
+            
+            <div id="menu-configuracoes" class="hidden mb-2">
+                <div onclick="navegarModulo('configuracoes')" class="sidebar-item" id="m-configuracoes">⚙️ Configurações</div>
+            </div>
+            
+            <button onclick="location.reload()" class="text-red-500 font-bold p-4 hover:bg-red-50 rounded-xl text-left mt-auto">Sair</button>
         </aside>
 
         <main class="flex-grow p-10 bg-gray-50 overflow-y-auto">
@@ -108,6 +204,14 @@
         </main>
     </div>
 
+    <div id="popup-container" class="popup-overlay" onclick="fecharPopup(event)">
+        <div class="popup-content" onclick="event.stopPropagation()">
+            <h3 id="popup-titulo" class="popup-title"></h3>
+            <p id="popup-mensagem" class="popup-message"></p>
+            <button onclick="fecharPopup()" class="popup-button popup-button-primary">OK</button>
+        </div>
+    </div>
+
     <div id="modal-container" class="modal-overlay" onclick="fecharModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h3 id="modal-titulo" class="text-2xl font-bold mb-6 text-gray-800"></h3>
@@ -120,43 +224,90 @@
     </div>
 
     <script>
-        const API = 'http://localhost:3000/api';
         let roleAtiva = 'admin';
-        let sessao = null;
-        let filtroPeriodo = 'Mês Atual'; // Estado Global do Filtro de Data
+        let filtroPeriodo = 'Mês Atual'; 
 
-        // Helpers de Data para simular os dias atuais no array dinamicamente
         const dtHoje = new Date();
         const dtOntem = new Date(dtHoje); dtOntem.setDate(dtHoje.getDate() - 1);
         const formatDt = (d) => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
 
-        // --- ESTADOS DA APLICAÇÃO ---
-        let equipe = [
-            {id: 1, nome: "Carlos Silva", cpf: "123.456.789-00", cargo: "admin", status: "Ativo", ultimoAcesso: "Hoje 14:30"},
-            {id: 2, nome: "Roberto Santos", cpf: "987.654.321-11", cargo: "vet", status: "Ativo", ultimoAcesso: "Ontem 10:15"},
-            {id: 3, nome: "Ana Paula", cpf: "444.555.666-77", cargo: "recepcao", status: "Inativo", ultimoAcesso: "10/04/2026"}
-        ];
+        let planoSelecionado = { nome: '', preco: 0 };
+        let dadosClinica = {};
+        let colaboradoresCheckout = [];
+        let clinicaLogada = null; 
+        let clinicaId = null; 
+        
+        let equipe = [];
+        let estoque = [];
+        let transacoes = [];
 
-        let estoque = [
-            {id: 0, nome: "Vacina V10", lote: "#2024-X", qtd: 45, val: "12/2025"},
-            {id: 1, nome: "Anestésico Propofol", lote: "#AF-44", qtd: 2, val: "05/2026"}
-        ];
+        function mascaraMoeda(i) {
+            let v = i.value.replace(/\D/g,'');
+            if(v === '') { i.value = ''; return; }
+            v = (v/100).toFixed(2) + '';
+            v = v.replace(".", ",");
+            v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
+            v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
+            i.value = 'R$ ' + v;
+        }
 
-        // Seed com datas relativas para que o filtro funcione hoje
-        let transacoes = [
-            { id: 1, data: formatDt(dtHoje), desc: "Venda Ração Premium", cat: "Venda de Produtos", valor: 250, tipo: "entrada", metodo: "Cartão de Crédito" },
-            { id: 2, data: formatDt(dtHoje), desc: "Compra Material Cirúrgico", cat: "Medicamentos", valor: 1100, tipo: "saida", metodo: "Pix" },
-            { id: 3, data: formatDt(dtOntem), desc: "Consulta Pet: Mel", cat: "Serviços", valor: 150, tipo: "entrada", metodo: "Cartão de Débito" }
-        ];
+        function mascaraCPF(i) {
+            let v = i.value.replace(/\D/g, "");
+            if (v.length > 11) v = v.substring(0, 11);
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+            i.value = v;
+        }
 
-        // --- NAVEGAÇÃO E LOGIN ---
+        function mascaraCNPJ(i) {
+            let v = i.value.replace(/\D/g, "");
+            if (v.length > 14) v = v.substring(0, 14);
+            v = v.replace(/(\d{2})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{3})(\d)/, "$1.$2");
+            v = v.replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+            i.value = v;
+        }
+
+        function mascaraTelefone(i) {
+            let v = i.value.replace(/\D/g, "");
+            if (v.length > 11) v = v.substring(0, 11);
+            v = v.replace(/(\d{2})(\d)/, "($1) $2");
+            v = v.replace(/(\d{5})(\d)/, "$1-$2");
+            i.value = v;
+        }
+
+        function mascaraCartao(i) {
+            let v = i.value.replace(/\D/g, "");
+            if (v.length > 16) v = v.substring(0, 16);
+            v = v.replace(/(\d{4})(\d)/, "$1 $2");
+            v = v.replace(/(\d{4})(\d)/, "$1 $2");
+            v = v.replace(/(\d{4})(\d)/, "$1 $2");
+            i.value = v;
+        }
+
+        function mascaraValidade(i) {
+            let v = i.value.replace(/\D/g, "");
+            if (v.length > 4) v = v.substring(0, 4);
+            v = v.replace(/(\d{2})(\d)/, "$1/$2");
+            i.value = v;
+        }
+
+        function mascaraCVV(i) {
+            let v = i.value.replace(/\D/g, "");
+            if (v.length > 4) v = v.substring(0, 4);
+            i.value = v;
+        }
+
         function irPara(id) {
             document.querySelectorAll('body > div').forEach(d => d.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
         }
 
         function selecionarPlano(n, p) {
-            document.getElementById('info-plano-final').innerText = `Plano ${n} Selecionado`;
+            planoSelecionado = { nome: n, preco: p };
+            document.getElementById('info-plano-etapa1').innerText = `Plano ${n} Selecionado - R$ ${p}/mês`;
             irPara('tela-checkout');
         }
 
@@ -168,16 +319,82 @@
 
         async function processarAssinatura() { irPara('tela-login'); }
 
+        // Função utilitária para buscar cabeçalhos comuns em rotas seguras
+        function getAuthHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'X-Clinic-Id': clinicaId,
+                'X-Usuario-Nome': clinicaLogada.nome
+            };
+        }
+
         async function efetuarLogin() {
-            irPara('app-container');
-            document.getElementById('clinica-tag').innerText = "CLÍNICA MUNDO PET TESTE";
-            montarMenu();
-            navegarModulo('financeiro');
+            const email = document.getElementById('login-email').value;
+            const senha = document.getElementById('login-senha').value;
+
+            try {
+                const res = await fetch('http://localhost:8080/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    clinicaId = data.user.clinic_id;
+                    clinicaLogada = { nome: data.user.nome, id: data.user.clinic_id, email: data.user.email, role: data.user.role };
+                    
+                    try {
+                        const clinicaRes = await fetch(`http://localhost:8080/api/clinica/${clinicaId}`);
+                        if(clinicaRes.ok) {
+                            const clinicaDados = await clinicaRes.json();
+                            clinicaLogada.nomeClinica = clinicaDados.nome;
+                            clinicaLogada.logo = clinicaDados.logotipo;
+                            clinicaLogada.cnpj = clinicaDados.cnpj || '';
+                            clinicaLogada.telefone = clinicaDados.telefone || '';
+                            clinicaLogada.endereco = clinicaDados.endereco || '';
+                            clinicaLogada.email_contato = clinicaDados.email_contato || '';
+                            clinicaLogada.categorias_prontuario = clinicaDados.categorias_prontuario || '';
+                            clinicaLogada.tipos_animais = clinicaDados.tipos_animais || '';
+                            clinicaLogada.cargos = clinicaDados.cargos || '';
+                        }
+
+                        const colabRes = await fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`);
+                        if(colabRes.ok) equipe = await colabRes.json();
+
+                        const transRes = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
+                        if(transRes.ok) transacoes = await transRes.json();
+
+                        const estRes = await fetch(`http://localhost:8080/api/estoque/${clinicaId}`);
+                        if(estRes.ok) estoque = await estRes.json();
+
+                    } catch (error) {
+                        console.error('Erro ao buscar dados iniciais:', error);
+                    }
+                    
+                    irPara('app-container');
+                    document.getElementById('clinica-tag').innerText = clinicaLogada.nomeClinica || `Clínica ${clinicaId}`;
+                    
+                    if (clinicaLogada.role === 'admin' || roleAtiva === 'admin') {
+                        document.getElementById('menu-configuracoes').classList.remove('hidden');
+                    } else {
+                        document.getElementById('menu-configuracoes').classList.add('hidden');
+                    }
+
+                    atualizarLogoSidebar();
+                    montarMenu();
+                    navegarModulo('financeiro');
+                } else {
+                    mostrarPopup('❌ Erro de Login', data.error || "Usuário ou senha incorretos");
+                }
+            } catch (e) {
+                mostrarPopup('🔌 Erro de Conexão', "Erro: O servidor não está rodando na porta 8080.");
+            }
         }
 
         function montarMenu() {
-            const m = document.getElementById('menu-lateral');
-            m.innerHTML = `
+            document.getElementById('menu-lateral').innerHTML = `
                 <div onclick="navegarModulo('financeiro')" class="sidebar-item" id="m-financeiro">💰 Financeiro</div>
                 <div onclick="navegarModulo('equipe')" class="sidebar-item" id="m-equipe">👥 Equipe</div>
                 <div onclick="navegarModulo('estoque')" class="sidebar-item" id="m-estoque">📦 Estoque</div>
@@ -206,6 +423,7 @@
                     <button onclick="window.print()" class="bg-white border px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-50">📥 Exportar PDF</button>
                 `;
                 atualizarDOMFinanceiro(cont);
+            
             } else if(mod === 'equipe') {
                 tit.innerText = "Recursos Humanos";
                 actions.innerHTML = `<button onclick="abrirModalColaborador()" class="btn-principal px-6 py-2 rounded-xl font-bold">+ Novo Colaborador</button>`;
@@ -213,13 +431,15 @@
                     <div class="mb-6"><input id="busca-equipe" onkeyup="filtrarEquipe()" placeholder="Buscar por nome ou CPF..." class="input-pet !w-full max-w-md"></div>
                     <div class="card">
                         <table>
-                            <thead><tr><th>Nome</th><th>Cargo</th><th>Status</th><th>Último Acesso</th><th>Ações</th></tr></thead>
+                            <thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Status</th><th>Último Acesso</th><th>Ações</th></tr></thead>
                             <tbody id="tabela-equipe-corpo">${renderEquipe(equipe)}</tbody>
                         </table>
                     </div>
                 `;
+            
             } else if(mod === 'estoque') {
                 tit.innerText = "Estoque Estratégico";
+                actions.innerHTML = `<button onclick="abrirModalEstoque()" class="btn-principal px-6 py-2 rounded-xl font-bold">+ Novo Item</button>`;
                 cont.innerHTML = `
                     <div class="bg-red-50 border border-red-200 p-4 rounded-xl mb-6 flex gap-4 items-center">
                         <span class="text-2xl">⚠️</span>
@@ -227,18 +447,286 @@
                     </div>
                     <div class="card">
                         <table>
-                            <thead><tr><th>Produto</th><th>Lote</th><th>Validade</th><th>Qtd</th><th>Ações Rápidas</th></tr></thead>
+                            <thead><tr><th>Produto</th><th>Lote</th><th>Validade</th><th>Qtd</th><th class="text-right">Ações Rápidas</th></tr></thead>
                             <tbody id="tabela-estoque-corpo">${renderEstoque()}</tbody>
                         </table>
                     </div>
                 `;
+            
             } else if(mod === 'auditoria') {
                 tit.innerText = "Logs de Auditoria";
-                cont.innerHTML = `<div class="card"><table><thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th></tr></thead><tbody><tr><td>12/04 16:30</td><td>Admin Carlos</td><td>Alterou Status Equipe: Ana Paula</td></tr></tbody></table></div>`;
+                actions.innerHTML = `<button onclick="carregarAuditoria()" class="btn-principal px-4 py-2 rounded-lg font-bold text-sm">Atualizar Logs</button>`;
+                cont.innerHTML = `Carregando logs de segurança...`;
+                carregarAuditoria(); // Fetch automático 
+            
+            } else if(mod === 'configuracoes') {
+                tit.innerText = "Configurações do Sistema";
+                cont.innerHTML = `
+                    <div class="max-w-2xl">
+                        <div class="card mb-6">
+                            <h3 class="text-xl font-bold mb-4 border-b pb-2">Informações da Clínica</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Nome da Clínica</label>
+                                    <input id="config-nome-clinica" value="${clinicaLogada.nomeClinica || ''}" class="input-pet">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">CNPJ</label>
+                                        <input id="config-cnpj-clinica" value="${clinicaLogada.cnpj || ''}" onkeyup="mascaraCNPJ(this)" class="input-pet">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">Telefone</label>
+                                        <input id="config-telefone-clinica" value="${clinicaLogada.telefone || ''}" onkeyup="mascaraTelefone(this)" class="input-pet">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Endereço (Aparecerá em Relatórios/Receitas)</label>
+                                    <input id="config-endereco-clinica" value="${clinicaLogada.endereco || ''}" class="input-pet">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Contato</label>
+                                    <input id="config-email-contato" value="${clinicaLogada.email_contato || ''}" class="input-pet">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Logotipo da Clínica (Imagem)</label>
+                                    <div class="flex items-center gap-3">
+                                        <img id="preview-logo" src="${clinicaLogada.logo || ''}" class="w-12 h-12 rounded-full object-cover border" style="${clinicaLogada.logo ? '' : 'display:none;'}">
+                                        <input type="file" id="config-logo-clinica" accept="image/*" class="input-pet" onchange="previewLogoFile(this)">
+                                    </div>
+                                    <input type="hidden" id="config-logo-base64" value="${clinicaLogada.logo || ''}">
+                                    <p class="text-xs text-gray-400 mt-1">Selecione uma imagem do seu computador (será salva no banco).</p>
+                                </div>
+
+                                <h4 class="text-lg font-bold mt-6 mb-2 border-b pb-1">Personalização do Sistema</h4>
+
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Categorias de Prontuários</label>
+                                    <div class="flex gap-2 mb-2">
+                                        <select id="config-categorias-prontuario-select" class="input-pet flex-grow"></select>
+                                        <button onclick="removerOpcao('config-categorias-prontuario-select', 'config-categorias-prontuario-hidden')" class="bg-red-100 text-red-600 px-3 rounded-lg font-bold hover:bg-red-200">Remover</button>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input id="nova-categoria-prontuario" placeholder="Nova categoria..." class="input-pet flex-grow">
+                                        <button onclick="adicionarOpcao('nova-categoria-prontuario', 'config-categorias-prontuario-select', 'config-categorias-prontuario-hidden')" class="bg-green-100 text-green-600 px-3 rounded-lg font-bold hover:bg-green-200">Adicionar</button>
+                                    </div>
+                                    <input type="hidden" id="config-categorias-prontuario-hidden" value="${clinicaLogada.categorias_prontuario || ''}">
+                                </div>
+
+                                <div class="mt-4">
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Tipos de Animais Atendidos</label>
+                                    <div class="flex gap-2 mb-2">
+                                        <select id="config-tipos-animais-select" class="input-pet flex-grow"></select>
+                                        <button onclick="removerOpcao('config-tipos-animais-select', 'config-tipos-animais-hidden')" class="bg-red-100 text-red-600 px-3 rounded-lg font-bold hover:bg-red-200">Remover</button>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input id="novo-tipo-animal" placeholder="Novo tipo..." class="input-pet flex-grow">
+                                        <button onclick="adicionarOpcao('novo-tipo-animal', 'config-tipos-animais-select', 'config-tipos-animais-hidden')" class="bg-green-100 text-green-600 px-3 rounded-lg font-bold hover:bg-green-200">Adicionar</button>
+                                    </div>
+                                    <input type="hidden" id="config-tipos-animais-hidden" value="${clinicaLogada.tipos_animais || ''}">
+                                </div>
+
+                                <div class="mt-4">
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Cargos da Equipe</label>
+                                    <div class="flex gap-2 mb-2">
+                                        <select id="config-cargos-select" class="input-pet flex-grow"></select>
+                                        <button onclick="removerOpcao('config-cargos-select', 'config-cargos-hidden')" class="bg-red-100 text-red-600 px-3 rounded-lg font-bold hover:bg-red-200">Remover</button>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <input id="novo-cargo" placeholder="Novo cargo..." class="input-pet flex-grow">
+                                        <button onclick="adicionarOpcao('novo-cargo', 'config-cargos-select', 'config-cargos-hidden')" class="bg-green-100 text-green-600 px-3 rounded-lg font-bold hover:bg-green-200">Adicionar</button>
+                                    </div>
+                                    <input type="hidden" id="config-cargos-hidden" value="${clinicaLogada.cargos || ''}">
+                                </div>
+                                
+                                <button onclick="salvarConfiguracoesClinica()" class="btn-principal px-6 py-2 rounded-xl font-bold mt-4">Salvar Configurações</button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3 class="text-xl font-bold mb-4 border-b pb-2">Segurança da Conta</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Acesso Atual</label>
+                                    <input value="${clinicaLogada.email || ''}" class="input-pet bg-gray-100" disabled>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Nova Senha</label>
+                                    <input id="config-nova-senha" type="password" placeholder="Mínimo 6 caracteres" class="input-pet">
+                                </div>
+                                <button onclick="salvarNovaSenha()" class="btn-principal px-6 py-2 rounded-xl font-bold mt-2">Alterar Senha</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                setTimeout(() => {
+                    inicializarSelect('config-categorias-prontuario-select', clinicaLogada.categorias_prontuario);
+                    inicializarSelect('config-tipos-animais-select', clinicaLogada.tipos_animais);
+                    inicializarSelect('config-cargos-select', clinicaLogada.cargos);
+                }, 100);
             }
         }
 
-        // --- LÓGICA FINANCEIRA ---
+        async function carregarAuditoria() {
+            try {
+                const res = await fetch(`http://localhost:8080/api/auditoria/${clinicaId}`);
+                if (res.ok) {
+                    const logs = await res.json();
+                    let html = logs.map(a => `
+                        <tr>
+                            <td class="text-xs text-gray-500">${a.data_hora}</td>
+                            <td class="font-bold text-blue-800">${a.usuario}</td>
+                            <td class="text-gray-700">${a.acao}</td>
+                        </tr>
+                    `).join('');
+                    
+                    if (!html) html = `<tr><td colspan="3" class="text-center py-6 text-gray-400 italic">Nenhum registro de auditoria efetuado ainda.</td></tr>`;
+                    
+                    document.getElementById('conteudo-dinamico').innerHTML = `
+                        <div class="card">
+                            <table>
+                                <thead><tr><th>Data/Hora</th><th>Usuário Responsável</th><th>Ação Realizada</th></tr></thead>
+                                <tbody>${html}</tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                document.getElementById('conteudo-dinamico').innerHTML = `<p class="text-red-500 font-bold">Erro ao carregar logs.</p>`;
+            }
+        }
+
+        function renderEquipe(lista) {
+            if (lista.length === 0) return `<tr><td colspan="6" class="text-center py-4 text-gray-400 italic">Nenhum colaborador encontrado.</td></tr>`;
+            return lista.map(u => `
+                <tr>
+                    <td class="font-bold">${u.nome}<br><span class="text-xs text-gray-400 font-normal">${u.cpf || 'Não informado'}</span></td>
+                    <td class="uppercase text-xs font-bold">${u.cargo}</td>
+                    <td>${u.email || '-'}</td>
+                    <td>
+                        <span onclick="alternarStatus(${u.id})" class="status-badge ${u.status === 'Ativo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}" title="Clique para mudar">
+                            ${u.status || 'Ativo'} 
+                        </span>
+                    </td>
+                    <td class="text-gray-400 text-xs">${u.ultimoAcesso || '-'}</td>
+                    <td><button onclick="abrirModalColaborador(${u.id})" class="text-blue-500 font-bold underline hover:text-blue-700">Editar</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarEquipe() {
+            const q = document.getElementById('busca-equipe').value.toLowerCase();
+            const filtrados = equipe.filter(u => 
+                u.nome.toLowerCase().includes(q) || 
+                (u.cpf && u.cpf.replace(/\D/g,'').includes(q.replace(/\D/g,'')))
+            );
+            document.getElementById('tabela-equipe-corpo').innerHTML = renderEquipe(filtrados);
+        }
+
+        async function alternarStatus(id) {
+            const idx = equipe.findIndex(e => e.id === id);
+            const novoStatus = equipe[idx].status === 'Ativo' ? 'Inativo' : 'Ativo';
+            
+            try {
+                const res = await fetch(`http://localhost:8080/api/colaborador/${id}/status`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ status: novoStatus })
+                });
+                
+                if(res.ok) {
+                    equipe[idx].status = novoStatus;
+                    filtrarEquipe();
+                }
+            } catch (error) {
+                mostrarPopup('Erro', 'Não foi possível alterar o status no banco de dados.');
+            }
+        }
+
+        function abrirModalColaborador(editId = null) {
+            const u = editId ? equipe.find(x => x.id === editId) : null;
+            document.getElementById('modal-titulo').innerText = editId ? "Editar Colaborador" : "Novo Colaborador";
+            
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Nome Completo</label>
+                        <input id="new-colab-nome" value="${u?.nome || ''}" placeholder="Ex: João da Silva" class="input-pet">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">CPF</label>
+                            <input id="new-colab-cpf" value="${u?.cpf || ''}" onkeyup="mascaraCPF(this)" placeholder="000.000.000-00" class="input-pet">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Cargo</label>
+                            <select id="new-colab-cargo" class="input-pet">
+                                <option value="Administrador" ${u?.cargo === 'Administrador' ? 'selected' : ''}>Administrador</option>
+                                <option value="Veterinário" ${u?.cargo === 'Veterinário' ? 'selected' : ''}>Veterinário</option>
+                                <option value="Recepção" ${u?.cargo === 'Recepção' ? 'selected' : ''}>Recepção</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail Institucional</label>
+                        <input id="new-colab-email" value="${u?.email || ''}" type="email" placeholder="nome@mundopet.com" class="input-pet">
+                    </div>
+                    ${!u ? `
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Senha Provisória</label>
+                        <input id="new-colab-senha" type="password" placeholder="••••••••" class="input-pet">
+                    </div>` : ''}
+                </div>
+            `;
+
+            document.getElementById('modal-confirmar').onclick = async () => {
+                const dados = {
+                    nome: document.getElementById('new-colab-nome').value,
+                    cpf: document.getElementById('new-colab-cpf').value,
+                    cargo: document.getElementById('new-colab-cargo').value,
+                    email: document.getElementById('new-colab-email').value
+                };
+
+                if (!dados.nome || !dados.cpf || !dados.email) return mostrarPopup('⚠️', 'Preencha nome, CPF e email.');
+
+                try {
+                    if(editId) {
+                        const res = await fetch(`http://localhost:8080/api/colaborador/${editId}`, {
+                            method: 'PUT',
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify(dados)
+                        });
+                        if (res.ok) {
+                            Object.assign(u, dados);
+                            mostrarPopup('✅ Sucesso', 'Colaborador atualizado!');
+                        }
+                    } else {
+                        const senha = document.getElementById('new-colab-senha').value;
+                        if (!senha) return mostrarPopup('⚠️', 'Defina uma senha.');
+                        
+                        const res = await fetch('http://localhost:8080/api/colaborador', {
+                            method: 'POST',
+                            headers: getAuthHeaders(),
+                            body: JSON.stringify({ ...dados, senha, clinica_id: clinicaId })
+                        });
+
+                        const result = await res.json();
+                        if (res.ok) {
+                            equipe.push({ id: result.id, ...dados, status: 'Ativo', ultimoAcesso: 'Nunca' });
+                            mostrarPopup('✅ Sucesso', `Cadastrado com sucesso!`);
+                        } else {
+                            return mostrarPopup('❌ Erro', result.error);
+                        }
+                    }
+                    
+                    fecharModal();
+                    navegarModulo('equipe');
+                } catch (error) {
+                    mostrarPopup('🔌 Erro', 'Erro de conexão.');
+                }
+            };
+            document.getElementById('modal-container').style.display = 'flex';
+        }
+
         function mudarFiltroPeriodo(valor) {
             filtroPeriodo = valor;
             atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
@@ -305,21 +793,21 @@
             `;
         }
 
-        function deletarTransacao(id) {
+        async function deletarTransacao(id) {
             if(confirm("Deseja realmente apagar esta transação?")) {
-                transacoes = transacoes.filter(t => t.id !== id);
-                atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                try {
+                    const res = await fetch(`http://localhost:8080/api/transacoes/${id}`, { 
+                        method: 'DELETE',
+                        headers: {'X-Clinic-Id': clinicaId, 'X-Usuario-Nome': clinicaLogada.nome}
+                    });
+                    if(res.ok) {
+                        transacoes = transacoes.filter(t => t.id !== id);
+                        atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                    }
+                } catch(error) {
+                    mostrarPopup('Erro', 'Erro ao deletar transação.');
+                }
             }
-        }
-
-        function mascaraMoeda(i) {
-            let v = i.value.replace(/\D/g,'');
-            if(v === '') { i.value = ''; return; }
-            v = (v/100).toFixed(2) + '';
-            v = v.replace(".", ",");
-            v = v.replace(/(\d)(\d{3})(\d{3}),/g, "$1.$2.$3,");
-            v = v.replace(/(\d)(\d{3}),/g, "$1.$2,");
-            i.value = 'R$ ' + v;
         }
 
         function atualizarEstiloBotaoTransacao() {
@@ -385,7 +873,6 @@
                 </div>
             `;
 
-            // Preencher se for edição
             if(t) {
                 document.getElementById('new-trans-desc').value = t.desc;
                 document.getElementById('new-trans-tipo').value = t.tipo;
@@ -403,7 +890,7 @@
 
             atualizarEstiloBotaoTransacao();
 
-            document.getElementById('modal-confirmar').onclick = () => {
+            document.getElementById('modal-confirmar').onclick = async () => {
                 let valInput = document.getElementById('new-trans-val').value;
                 if(!valInput) return alert("Preencha o valor!");
                 
@@ -413,83 +900,465 @@
                 const dateParts = document.getElementById('new-trans-data').value.split('-');
                 const dataFormatada = `${dateParts[2]}/${dateParts[1]}`;
 
-                if(editId) {
-                    t.desc = document.getElementById('new-trans-desc').value;
-                    t.data = dataFormatada;
-                    t.cat = document.getElementById('new-trans-cat').value;
-                    t.valor = valorFloat;
-                    t.tipo = document.getElementById('new-trans-tipo').value;
-                    t.metodo = document.getElementById('new-trans-metodo').value;
-                } else {
-                    transacoes.unshift({
-                        id: Date.now(),
-                        data: dataFormatada,
-                        desc: document.getElementById('new-trans-desc').value,
-                        cat: document.getElementById('new-trans-cat').value,
-                        valor: valorFloat,
-                        tipo: document.getElementById('new-trans-tipo').value,
-                        metodo: document.getElementById('new-trans-metodo').value
-                    });
+                const payload = {
+                    clinic_id: clinicaId,
+                    data: dataFormatada,
+                    descricao: document.getElementById('new-trans-desc').value,
+                    categoria: document.getElementById('new-trans-cat').value,
+                    valor: valorFloat,
+                    tipo: document.getElementById('new-trans-tipo').value,
+                    metodo: document.getElementById('new-trans-metodo').value
+                };
+
+                try {
+                    if(editId) {
+                        await fetch(`http://localhost:8080/api/transacoes/${editId}`, {
+                            method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(payload)
+                        });
+                    } else {
+                        await fetch(`http://localhost:8080/api/transacoes`, {
+                            method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload)
+                        });
+                    }
+                    
+                    const res = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
+                    transacoes = await res.json();
+                    
+                    fecharModal();
+                    atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                } catch(error) {
+                    mostrarPopup('Erro', 'Não foi possível salvar a transação.');
                 }
-                
-                fecharModal();
-                atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
             };
             document.getElementById('modal-container').style.display = 'flex';
         }
 
-        // --- LÓGICA DE EQUIPE (MANTIDA) ---
-        function renderEquipe(lista) {
-            return lista.map(u => `
-                <tr>
-                    <td class="font-bold">${u.nome}<br><span class="text-xs text-gray-400 font-normal">${u.cpf}</span></td>
-                    <td class="uppercase text-xs font-bold">${u.cargo}</td>
-                    <td><span onclick="alternarStatus(${u.id})" class="status-badge ${u.status === 'Ativo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}" title="Clique para mudar">${u.status} ↻</span></td>
-                    <td class="text-gray-400 text-xs">${u.ultimoAcesso}</td>
-                    <td><button onclick="abrirModalEditarColaborador(${u.id})" class="text-blue-500 font-bold underline hover:text-blue-700">Editar</button></td>
-                </tr>
-            `).join('');
-        }
-        function filtrarEquipe() {
-            const q = document.getElementById('busca-equipe').value.toLowerCase();
-            document.getElementById('tabela-equipe-corpo').innerHTML = renderEquipe(equipe.filter(u => u.nome.toLowerCase().includes(q) || u.cpf.includes(q)));
-        }
-        function alternarStatus(id) {
-            const idx = equipe.findIndex(e => e.id === id);
-            equipe[idx].status = equipe[idx].status === 'Ativo' ? 'Inativo' : 'Ativo';
-            filtrarEquipe(); 
-        }
-        function abrirModalColaborador() { /* ... Lógica anterior mantida ... */ fecharModal(); }
-        function abrirModalEditarColaborador(id) { /* ... Lógica anterior mantida ... */ fecharModal(); }
-
-        // --- LÓGICA DE ESTOQUE (MANTIDA) ---
         function renderEstoque() {
+            if(estoque.length === 0) return `<tr><td colspan="5" class="text-center py-4 text-gray-400">Nenhum item no estoque.</td></tr>`;
             return estoque.map((p, i) => `
                 <tr>
-                    <td class="font-bold cursor-pointer text-blue-600 hover:underline" onclick="abrirModalEstoque(${i})">${p.nome}</td>
+                    <td class="font-bold">${p.nome}</td>
                     <td class="text-xs text-gray-400">${p.lote}</td>
                     <td>${p.val}</td>
                     <td class="font-black text-lg ${p.qtd < 5 ? 'text-red-500' : 'text-green-600'}">${p.qtd}</td>
-                    <td>
-                        <button onclick="ajustarEstoque(${i}, -1)" class="bg-gray-200 px-3 py-1 rounded font-bold text-gray-700">-</button>
-                        <button onclick="ajustarEstoque(${i}, 1)" class="bg-gray-200 px-3 py-1 rounded font-bold ml-1 text-gray-700">+</button>
+                    <td class="text-right">
+                        <button onclick="ajustarEstoque(${i}, -1)" class="bg-gray-200 px-3 py-1 rounded font-bold text-gray-700" title="Diminuir">-</button>
+                        <button onclick="ajustarEstoque(${i}, 1)" class="bg-gray-200 px-3 py-1 rounded font-bold ml-1 text-gray-700" title="Aumentar">+</button>
+                        <button onclick="deletarItemEstoque(${p.id})" class="text-red-500 hover:text-red-700 ml-4 text-lg align-middle" title="Apagar Item">🗑️</button>
                     </td>
                 </tr>
             `).join('');
         }
-        function ajustarEstoque(idx, qtd) {
-            if(estoque[idx].qtd + qtd >= 0) {
-                estoque[idx].qtd += qtd;
-                document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
+
+        async function ajustarEstoque(idx, qtd) {
+            const item = estoque[idx];
+            if(item.qtd + qtd >= 0) {
+                try {
+                    const novaQtd = item.qtd + qtd;
+                    const res = await fetch(`http://localhost:8080/api/estoque/${item.id}/ajustar`, {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ qtd: novaQtd })
+                    });
+
+                    if(res.ok) {
+                        estoque[idx].qtd = novaQtd;
+                        document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
+                    }
+                } catch (error) {
+                    mostrarPopup('Erro', 'Não foi possível atualizar o estoque.');
+                }
             }
         }
-        function abrirModalEstoque(idx) { /* ... Lógica anterior mantida ... */ fecharModal(); }
+
+        async function deletarItemEstoque(id) {
+            if(confirm("Deseja realmente excluir este item do estoque?")) {
+                try {
+                    const res = await fetch(`http://localhost:8080/api/estoque/${id}`, { 
+                        method: 'DELETE',
+                        headers: {'X-Clinic-Id': clinicaId, 'X-Usuario-Nome': clinicaLogada.nome} 
+                    });
+                    if(res.ok) {
+                        estoque = estoque.filter(e => e.id !== id);
+                        document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
+                        mostrarPopup('✅ Sucesso', 'Item removido do estoque.');
+                    } else {
+                        mostrarPopup('❌ Erro', 'Não foi possível excluir o item.');
+                    }
+                } catch(error) {
+                    mostrarPopup('🔌 Erro', 'Erro de conexão com o servidor.');
+                }
+            }
+        }
+
+        function abrirModalEstoque() { 
+            document.getElementById('modal-titulo').innerText = "Novo Item no Estoque";
+            
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Produto *</label>
+                        <input id="new-est-nome" placeholder="Ex: Vacina V10" class="input-pet" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Lote *</label>
+                            <input id="new-est-lote" placeholder="Ex: L-1234" class="input-pet" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Validade *</label>
+                            <input id="new-est-val" placeholder="MM/AAAA" class="input-pet" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Quantidade Inicial *</label>
+                            <input id="new-est-qtd" type="number" placeholder="0" class="input-pet" required>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Custo de Aquisição (R$)</label>
+                            <input id="new-est-valor" type="text" placeholder="R$ 0,00" class="input-pet" onkeyup="mascaraMoeda(this)">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Fornecedor</label>
+                        <input id="new-est-fornecedor" placeholder="Nome da empresa fornecedora" class="input-pet">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Descrição Adicional</label>
+                        <textarea id="new-est-desc" placeholder="Detalhes sobre o produto..." class="input-pet" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 mt-4 bg-blue-50 p-4 rounded-xl border border-blue-200">
+                        <input type="checkbox" id="new-est-transacao" class="w-5 h-5 cursor-pointer accent-blue-600">
+                        <label for="new-est-transacao" class="text-sm font-bold text-blue-800 cursor-pointer">
+                            Gerar despesa no financeiro automaticamente?
+                        </label>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modal-confirmar').onclick = async () => {
+                const nome = document.getElementById('new-est-nome').value.trim();
+                const lote = document.getElementById('new-est-lote').value.trim();
+                const val = document.getElementById('new-est-val').value.trim();
+                const qtd = parseInt(document.getElementById('new-est-qtd').value || 0);
+                const fornecedor = document.getElementById('new-est-fornecedor').value.trim();
+                const descricao = document.getElementById('new-est-desc').value.trim();
+
+                let valInput = document.getElementById('new-est-valor').value;
+                let numLimpo = valInput.replace(/\D/g, ''); 
+                let valorFloat = numLimpo ? parseFloat(numLimpo) / 100 : 0;
+
+                const gerarTransacao = document.getElementById('new-est-transacao').checked;
+
+                if (!nome || !lote || !val || isNaN(qtd)) {
+                    return mostrarPopup('⚠️ Atenção', 'Preencha os campos obrigatórios (*).');
+                }
+
+                if (gerarTransacao && valorFloat === 0) {
+                    return mostrarPopup('⚠️ Atenção', 'Para gerar uma transação financeira, o Custo de Aquisição deve ser maior que zero.');
+                }
+
+                const payload = {
+                    clinic_id: clinicaId,
+                    nome, lote, val, qtd, fornecedor, descricao, valor: valorFloat, gerarTransacao
+                };
+
+                try {
+                    const res = await fetch('http://localhost:8080/api/estoque', {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (res.ok) {
+                        const estRes = await fetch(`http://localhost:8080/api/estoque/${clinicaId}`);
+                        estoque = await estRes.json();
+                        
+                        if (gerarTransacao) {
+                            const transRes = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
+                            transacoes = await transRes.json();
+                        }
+
+                        fecharModal();
+                        document.getElementById('tabela-estoque-corpo').innerHTML = renderEstoque();
+                        mostrarPopup('✅ Sucesso', 'Item adicionado ao estoque!');
+                    } else {
+                        mostrarPopup('❌ Erro', 'Falha ao salvar o item.');
+                    }
+                } catch (error) {
+                    mostrarPopup('🔌 Erro', 'Verifique a conexão com o servidor.');
+                }
+            };
+            
+            document.getElementById('modal-container').style.display = 'flex';
+        }
 
         function fecharModal() { 
             const btn = document.getElementById('modal-confirmar');
-            btn.style.background = ''; // Limpa as cores customizadas
+            btn.style.background = ''; 
             btn.innerText = 'Salvar';
             document.getElementById('modal-container').style.display = 'none'; 
+        }
+
+        function mostrarPopup(titulo, mensagem) {
+            document.getElementById('popup-titulo').innerText = titulo;
+            document.getElementById('popup-mensagem').innerText = mensagem;
+            document.getElementById('popup-container').style.display = 'flex';
+        }
+
+        function fecharPopup() {
+            document.getElementById('popup-container').style.display = 'none';
+        }
+
+        function validarEtapa1() {
+            const nome = document.getElementById('clinica-nome').value.trim();
+            const cnpj = document.getElementById('clinica-cnpj').value.trim();
+            const telefone = document.getElementById('clinica-telefone').value.trim();
+            const email = document.getElementById('clinica-email').value.trim();
+            const senha = document.getElementById('clinica-senha').value.trim();
+
+            if (!nome || !cnpj || !telefone || !email || !senha) return mostrarPopup('⚠️', 'Preencha os campos.');
+            if (senha.length < 6) return mostrarPopup('⚠️', 'A senha deve ter no mínimo 6 caracteres.');
+            
+            dadosClinica = { nome, cnpj, telefone, email, senha };
+            
+            document.getElementById('etapa-1').classList.add('hidden');
+            document.getElementById('etapa-2').classList.remove('hidden');
+            renderizarColaboradores();
+        }
+
+        function renderizarColaboradores() {
+            const container = document.getElementById('colaboradores-lista');
+            let formNovo = `
+                <div class="bg-white border border-gray-200 p-4 rounded-lg mt-4">
+                    <h4 class="font-bold mb-4 text-gray-800">Adicionar Colaborador</h4>
+                    <div class="space-y-3">
+                        <input id="novo-colab-nome" placeholder="Ex: João da Silva" class="input-pet mb-2">
+                        <div class="grid grid-cols-2 gap-3 mb-2">
+                            <input id="novo-colab-cpf" onkeyup="mascaraCPF(this)" placeholder="CPF" class="input-pet">
+                            <select id="novo-colab-cargo" class="input-pet">
+                                <option value="">Cargo...</option><option value="Veterinário">Veterinário</option><option value="Recepção">Recepção</option><option value="Administrador">Administrador</option>
+                            </select>
+                        </div>
+                        <input id="novo-colab-email" type="email" placeholder="E-mail" class="input-pet mb-2">
+                        <button onclick="adicionarColaboradorForm()" class="w-full btn-principal py-3 rounded-xl font-bold">+ Adicionar Colaborador</button>
+                    </div>
+                </div>`;
+
+            if (colaboradoresCheckout.length === 0) {
+                container.innerHTML = '<div class="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4"><p class="text-gray-400 text-center">Nenhum colaborador adicionado ainda.</p></div>' + formNovo;
+            } else {
+                let listaHtml = colaboradoresCheckout.map((colab, index) => `
+                    <div class="bg-gray-50 p-4 rounded-lg border mb-3 flex justify-between items-start">
+                        <div><p class="font-bold">${colab.nome}</p><p class="text-sm text-gray-600">${colab.cargo} - ${colab.email}</p></div>
+                        <button onclick="removerColaborador(${index})" class="text-red-500 font-bold hover:text-red-700">Remover</button>
+                    </div>
+                `).join('');
+                container.innerHTML = listaHtml + formNovo;
+            }
+        }
+
+        function adicionarColaboradorForm() {
+            const nome = document.getElementById('novo-colab-nome').value.trim();
+            const cpf = document.getElementById('novo-colab-cpf').value.trim();
+            const cargo = document.getElementById('novo-colab-cargo').value.trim();
+            const email = document.getElementById('novo-colab-email').value.trim();
+
+            if (!nome || !cpf || !cargo || !email) return mostrarPopup('⚠️', 'Preencha os dados.');
+            
+            colaboradoresCheckout.push({ nome, cpf, cargo, email });
+            renderizarColaboradores();
+        }
+
+        function removerColaborador(index) {
+            colaboradoresCheckout.splice(index, 1);
+            renderizarColaboradores();
+        }
+
+        function validarEtapa2() {
+            document.getElementById('etapa-2').classList.add('hidden');
+            document.getElementById('etapa-3').classList.remove('hidden');
+            document.getElementById('resumo-plano').innerText = planoSelecionado.nome;
+            document.getElementById('resumo-total').innerText = 'R$ ' + planoSelecionado.preco + '/mês';
+        }
+
+        function voltarEtapa2() { document.getElementById('etapa-2').classList.add('hidden'); document.getElementById('etapa-1').classList.remove('hidden'); }
+        function voltarEtapa3() { document.getElementById('etapa-3').classList.add('hidden'); document.getElementById('etapa-2').classList.remove('hidden'); }
+
+        async function finalizarCadastro() {
+            try {
+                const response = await fetch('http://localhost:8080/api/assinatura-completa', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clinica: {
+                            nome: dadosClinica.nome,
+                            cnpj: dadosClinica.cnpj,
+                            telefone: dadosClinica.telefone,
+                            emailAdmin: dadosClinica.email,
+                            senhaAdmin: dadosClinica.senha
+                        },
+                        colaboradores: colaboradoresCheckout
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarPopup('✅ Cadastro Concluído', 'Cadastro realizado com sucesso! Faça seu login para começar.');
+                    planoSelecionado = { nome: '', preco: 0 };
+                    dadosClinica = {};
+                    colaboradoresCheckout = [];
+                    irPara('tela-login');
+                } else {
+                    mostrarPopup('❌ Erro no Cadastro', result.error || 'Erro ao processar cadastro.');
+                }
+            } catch (error) {
+                mostrarPopup('🔌 Erro', 'Verifique se o servidor está rodando na porta 8080.');
+            }
+        }
+        function atualizarLogoSidebar() {
+            const container = document.getElementById('clinica-logo-container');
+            if (clinicaLogada.logo) {
+                container.innerHTML = `<img src="${clinicaLogada.logo}" alt="Logo Clínica" class="w-8 h-8 rounded-full object-cover"> <span class="truncate text-lg">${clinicaLogada.nomeClinica}</span>`;
+            } else {
+                container.innerHTML = `🐾 Mundo Pet`;
+            }
+        }
+
+        async function salvarConfiguracoesClinica() {
+            const novoNome = document.getElementById('config-nome-clinica').value;
+            const novoCNPJ = document.getElementById('config-cnpj-clinica').value;
+            const novoTelefone = document.getElementById('config-telefone-clinica').value;
+            const novoEndereco = document.getElementById('config-endereco-clinica').value;
+            const novoEmail = document.getElementById('config-email-contato').value;
+            
+            const novoLogo = document.getElementById('config-logo-base64').value;
+            const novasCategorias = document.getElementById('config-categorias-prontuario-hidden').value;
+            const novosAnimais = document.getElementById('config-tipos-animais-hidden').value;
+            const novosCargos = document.getElementById('config-cargos-hidden').value;
+
+            try {
+                const res = await fetch(`http://localhost:8080/api/clinica/${clinicaLogada.id}`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ 
+                        nome: novoNome, cnpj: novoCNPJ, telefone: novoTelefone, 
+                        endereco: novoEndereco, logotipo: novoLogo, email_contato: novoEmail, 
+                        categorias_prontuario: novasCategorias, tipos_animais: novosAnimais, cargos: novosCargos 
+                    })
+                });
+
+                if (res.ok) {
+                    clinicaLogada.nomeClinica = novoNome;
+                    clinicaLogada.logo = novoLogo;
+                    clinicaLogada.categorias_prontuario = novasCategorias;
+                    clinicaLogada.tipos_animais = novosAnimais;
+                    clinicaLogada.cargos = novosCargos;
+
+                    document.getElementById('clinica-tag').innerText = novoNome;
+                    if(typeof atualizarLogoSidebar === 'function') atualizarLogoSidebar();
+                    mostrarPopup('✅ Sucesso', 'Configurações da clínica atualizadas!');
+                } else {
+                    mostrarPopup('❌ Erro', 'Não foi possível atualizar a clínica.');
+                }
+            } catch(e) {
+                mostrarPopup('❌ Erro', 'Falha na conexão com o servidor.');
+            }
+        }
+        
+        async function salvarNovaSenha() {
+            const novaSenha = document.getElementById('config-nova-senha').value;
+            if (!novaSenha || novaSenha.length < 6) {
+                return mostrarPopup('⚠️ Atenção', 'A senha deve ter pelo menos 6 caracteres.');
+            }
+
+            try {
+                const res = await fetch(`http://localhost:8080/api/usuario/senha`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ email: clinicaLogada.email, senha: novaSenha })
+                });
+
+                if (res.ok) {
+                    document.getElementById('config-nova-senha').value = '';
+                    mostrarPopup('✅ Sucesso', 'Senha alterada com sucesso!');
+                } else {
+                    mostrarPopup('❌ Erro', 'Não foi possível alterar a senha.');
+                }
+            } catch(e) {
+                mostrarPopup('❌ Erro', 'Falha na conexão com o servidor.');
+            }
+        }
+        
+        function previewLogoFile(input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('config-logo-base64').value = e.target.result;
+                    const preview = document.getElementById('preview-logo');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function inicializarSelect(selectId, valoresString) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            select.innerHTML = '';
+            if (valoresString) {
+                const valores = valoresString.split(',').map(v => v.trim()).filter(v => v);
+                valores.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.innerText = v;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        function adicionarOpcao(inputId, selectId, hiddenId) {
+            const input = document.getElementById(inputId);
+            const select = document.getElementById(selectId);
+            const valor = input.value.trim();
+            if (valor) {
+                let existe = false;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value.toLowerCase() === valor.toLowerCase()) existe = true;
+                }
+                if (!existe) {
+                    const opt = document.createElement('option');
+                    opt.value = valor;
+                    opt.innerText = valor;
+                    select.appendChild(opt);
+                    atualizarHidden(selectId, hiddenId);
+                    input.value = '';
+                } else {
+                    mostrarPopup('⚠️ Atenção', 'Esta opção já existe na lista.');
+                }
+            }
+        }
+
+        function removerOpcao(selectId, hiddenId) {
+            const select = document.getElementById(selectId);
+            if (select.selectedIndex !== -1) {
+                select.remove(select.selectedIndex);
+                atualizarHidden(selectId, hiddenId);
+            }
+        }
+
+        function atualizarHidden(selectId, hiddenId) {
+            const select = document.getElementById(selectId);
+            const valores = [];
+            for (let i = 0; i < select.options.length; i++) {
+                valores.push(select.options[i].value);
+            }
+            document.getElementById(hiddenId).value = valores.join(', ');
         }
     </script>
 </body>
