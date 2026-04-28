@@ -379,6 +379,136 @@
                     );
                 }, 100);
             }
+            // ================= RECEPÇÃO =================
+
+            else if(mod === 'recepcao-dashboard') {
+                tit.innerText = "Dashboard - Recepção";
+
+                const hoje = new Date().toLocaleDateString('pt-BR');
+
+                cont.innerHTML = `
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="card"><b>Agendamentos Hoje</b><br>12</div>
+                        <div class="card"><b>Em Atendimento</b><br>5</div>
+                        <div class="card"><b>Aguardando</b><br>7</div>
+                        <div class="card"><b>Lembretes</b><br>3</div>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="font-bold mb-2">Faturamento Diário</h3>
+                        <p class="text-2xl font-black text-green-600">R$ 1.250,00</p>
+                    </div>
+                `;
+            }
+
+            else if(mod === 'agenda') {
+                tit.innerText = "Agenda";
+
+                const hoje = new Date();
+                const dia = hoje.getDate();
+
+                cont.innerHTML = `
+                    <div class="flex justify-between mb-4">
+                        <button class="btn-principal px-4 py-2 rounded-lg">+ Novo Agendamento</button>
+                    </div>
+
+                    <div class="card grid grid-cols-7 gap-2 text-center">
+                        ${[...Array(30)].map((_,i)=>`
+                            <div class="${i+1===dia?'bg-blue-500 text-white':''} p-2 rounded">
+                                ${i+1}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            else if(mod === 'clientes') {
+                tit.innerText = "Clientes";
+
+                cont.innerHTML = `
+                    <div class="flex justify-between mb-4">
+                        <input placeholder="Buscar Nome, CPF ou Telefone" class="input-pet w-1/2">
+                        <button class="btn-principal px-4 py-2 rounded-lg">+ Novo Cliente</button>
+                    </div>
+
+                    <div class="card">
+                        <table>
+                            <thead><tr><th>Nome</th><th>Telefone</th><th>Histórico</th></tr></thead>
+                            <tbody>
+                                <tr><td>João Silva</td><td>(11)99999-9999</td><td>3 consultas</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            else if(mod === 'pets') {
+                tit.innerText = "Pets";
+
+                cont.innerHTML = `
+                    <input placeholder="Buscar por nome ou raça" class="input-pet mb-4">
+
+                    <div class="card">
+                        <table>
+                            <thead><tr><th>Nome</th><th>Raça</th><th>Dono</th><th>Alerta</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td>Rex</td>
+                                    <td>Pastor Alemão</td>
+                                    <td>João Silva</td>
+                                    <td class="text-red-500 font-bold">Agressivo</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            else if(mod === 'fila') {
+                tit.innerText = "Fila de Atendimento";
+
+                cont.innerHTML = `
+                    <div class="card">
+                        <table>
+                            <thead><tr><th>Pet</th><th>Hora</th><th>Status</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td>Rex</td>
+                                    <td>14:00</td>
+                                    <td>Aguardando</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            else if(mod === 'caixa') {
+                tit.innerText = "Caixa";
+
+                cont.innerHTML = `
+                    <div class="card mb-4">
+                        <button class="btn-principal px-4 py-2 rounded-lg">+ Novo Lançamento</button>
+                    </div>
+
+                    <div class="card">
+                        <p><b>Faturamento do dia:</b> R$ 1.250,00</p>
+                        <button class="bg-red-500 text-white px-4 py-2 rounded mt-4">Fechar Caixa</button>
+                    </div>
+                `;
+            }
+
+            else if(mod === 'relatorios') {
+                tit.innerText = "Relatórios";
+
+                cont.innerHTML = `
+                    <div class="card">
+                        <p><b>Atendimentos:</b> 30</p>
+                        <p><b>Ticket Médio:</b> R$ 120</p>
+                        <p><b>Inadimplência:</b> 2 clientes</p>
+                    </div>
+                `;
+            }
         }
 
         async function carregarAuditoria() {
