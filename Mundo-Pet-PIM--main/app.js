@@ -15,6 +15,25 @@
         let estoque = [];
         let transacoes = [];
 
+        async function sincronizarDados() {
+            if (!clinicaId) return;
+
+            try {
+                const [colabRes, transRes, estRes] = await Promise.all([
+                    fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`),
+                    fetch(`http://localhost:8080/api/transacoes/${clinicaId}`),
+                    fetch(`http://localhost:8080/api/estoque/${clinicaId}`)
+                ]);
+
+                if (colabRes.ok) equipe = await colabRes.json();
+                if (transRes.ok) transacoes = await transRes.json();
+                if (estRes.ok) estoque = await estRes.json();
+
+            } catch (e) {
+                console.error("Erro ao sincronizar dados:", e);
+            }
+        }
+
         function mascaraMoeda(i) {
             let v = i.value.replace(/\D/g,'');
             if(v === '') { i.value = ''; return; }
@@ -176,6 +195,8 @@
             }
         }
 
+        setInterval(sincronizarDados, 3000);
+
         function montarMenu() {
             document.getElementById('menu-lateral').innerHTML = `
                 <div onclick="navegarModulo('financeiro')" class="sidebar-item" id="m-financeiro">💰 Financeiro</div>
@@ -212,7 +233,8 @@
             `;
         }
 
-        function navegarModulo(mod) {
+        async function navegarModulo(mod) {
+            await sincronizarDados();
             const cont = document.getElementById('conteudo-dinamico');
             const tit = document.getElementById('modulo-titulo');
             const actions = document.getElementById('header-actions');
@@ -382,24 +404,77 @@
             // ================= RECEPÇÃO =================
 
             else if(mod === 'recepcao-dashboard') {
-                tit.innerText = "Dashboard - Recepção";
+            tit.innerText = "Dashboard - Recepção";
 
-                const hoje = new Date().toLocaleDateString('pt-BR');
+            const hoje = new Date().toLocaleDateString('pt-BR');
 
-                cont.innerHTML = `
-                    <div class="grid grid-cols-4 gap-4 mb-6">
-                        <div class="card"><b>Agendamentos Hoje</b><br>12</div>
-                        <div class="card"><b>Em Atendimento</b><br>5</div>
-                        <div class="card"><b>Aguardando</b><br>7</div>
-                        <div class="card"><b>Lembretes</b><br>3</div>
-                    </div>
+            // ===== DADOS =====
+            const transHoje = transacoes.filter(t => t.data === hoje);
 
+            const faturamento = transHoje
+                .filter(t => t.tipo === 'entrada')
+                .reduce((a,b)=>a+b.valor, 0);
+
+            // Simulação simples (até você integrar backend real dessas partes)
+            const totalAgendamentos = transHoje.length; 
+            const emAtendimento = Math.floor(totalAgendamentos * 0.4);
+            const aguardando = totalAgendamentos - emAtendimento;
+            const lembretes = Math.floor(totalAgendamentos * 0.2);
+
+            // ===== GRÁFICO SIMPLES =====
+            const valoresPorHora = {};
+            transHoje.forEach(t => {
+                const hora = new Date().getHours(); // simplificado
+                valoresPorHora[hora] = (valoresPorHora[hora] || 0) + t.valor;
+            });
+
+            const labels = Object.keys(valoresPorHora);
+            const dados = Object.values(valoresPorHora);
+
+            cont.innerHTML = `
+                <div class="grid grid-cols-4 gap-4 mb-6">
                     <div class="card">
-                        <h3 class="font-bold mb-2">Faturamento Diário</h3>
-                        <p class="text-2xl font-black text-green-600">R$ 1.250,00</p>
+                        <b>Agendamentos Hoje</b><br>${totalAgendamentos}
                     </div>
-                `;
-            }
+                    <div class="card">
+                        <b>Em Atendimento</b><br>${emAtendimento}
+                    </div>
+                    <div class="card">
+                        <b>Aguardando</b><br>${aguardando}
+                    </div>
+                    <div class="card">
+                        <b>Lembretes</b><br>${lembretes}
+                    </div>
+                </div>
+
+                <div class="card mb-6">
+                    <h3 class="font-bold mb-2">Faturamento Diário</h3>
+                    <p class="text-2xl font-black text-green-600">
+                        R$ ${faturamento.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                    </p>
+                </div>
+
+                <div class="card">
+                    <h3 class="font-bold mb-4">Faturamento por Hora</h3>
+                    <canvas id="graficoRecepcao" height="100"></canvas>
+                </div>
+            `;
+
+            setTimeout(() => {
+                const ctx = document.getElementById('graficoRecepcao');
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels.length ? labels : ['Sem dados'],
+                        datasets: [{
+                            label: 'R$',
+                            data: dados.length ? dados : [0]
+                        }]
+                    }
+                });
+            }, 100);
+        }
 
             else if(mod === 'agenda') {
                 tit.innerText = "Agenda";
@@ -483,20 +558,33 @@
                 `;
             }
 
-            else if(mod === 'caixa') {
-                tit.innerText = "Caixa";
+           else if(mod === 'caixa') {
+            tit.innerText = "Caixa";
 
-                cont.innerHTML = `
-                    <div class="card mb-4">
-                        <button class="btn-principal px-4 py-2 rounded-lg">+ Novo Lançamento</button>
-                    </div>
+            const hoje = new Date().toLocaleDateString('pt-BR');
 
-                    <div class="card">
-                        <p><b>Faturamento do dia:</b> R$ 1.250,00</p>
-                        <button class="bg-red-500 text-white px-4 py-2 rounded mt-4">Fechar Caixa</button>
-                    </div>
-                `;
-            }
+            const hojeTransacoes = transacoes.filter(t => t.data === hoje);
+            const faturamento = hojeTransacoes
+                .filter(t => t.tipo === 'entrada')
+                .reduce((a,b)=>a+b.valor, 0);
+
+            cont.innerHTML = `
+                <div class="card mb-4">
+                    <button onclick="abrirModalTransacao()" class="btn-principal px-4 py-2 rounded-lg">
+                        + Novo Lançamento
+                    </button>
+                </div>
+
+                <div class="card">
+                    <p><b>Faturamento do dia:</b> 
+                        R$ ${faturamento.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                    </p>
+                    <button class="bg-red-500 text-white px-4 py-2 rounded mt-4">
+                        Fechar Caixa
+                    </button>
+                </div>
+            `;
+        }
 
             else if(mod === 'relatorios') {
                 tit.innerText = "Relatórios";
