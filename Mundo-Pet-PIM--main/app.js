@@ -1714,7 +1714,8 @@
                     <div class="p-3 border border-gray-200 rounded-lg mt-3 bg-gray-50 relative">
                         <div class="pet-form">
                             <h5 class="font-bold text-sm text-gray-700 mb-2">Pet ${petCount}</h5>
-                            <div class="grid grid-cols-2 gap-3">
+                            
+                            <div class="grid grid-cols-2 gap-3 mb-3">
                                 <div>
                                     <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Pet</label>
                                     <input type="text" class="input-pet pet-nome" required>
@@ -1724,6 +1725,26 @@
                                     <input type="text" class="input-pet pet-raca" required>
                                 </div>
                             </div>
+
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Idade</label>
+                                    <input type="text" class="input-pet pet-idade" placeholder="Ex: 2 anos">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Sexo</label>
+                                    <select class="input-pet pet-sexo">
+                                        <option value="">Selecione</option>
+                                        <option value="Macho">Macho</option>
+                                        <option value="Fêmea">Fêmea</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Peso (kg)</label>
+                                    <input type="number" step="0.1" class="input-pet pet-peso" placeholder="Ex: 5.5">
+                                </div>
+                            </div>
+
                             <div class="flex gap-4 mt-3">
                                 <button type="button" onclick="
                                     const divPet = this.closest('.relative');
@@ -1764,12 +1785,25 @@
                 const endereco = document.getElementById('new-cli-endereco').value.trim();
 
                 if (!nome || !telefone) return mostrarPopup('⚠️', 'Preencha Nome e Telefone.');
+                
                 // Captura os dados dos pets adicionados para enviar ao banco
                 const petsAdicionados = [];
                 document.querySelectorAll('#container-pets > div').forEach(div => {
                     const pNome = div.querySelector('.pet-nome').value.trim();
                     const pRaca = div.querySelector('.pet-raca').value.trim();
-                    if (pNome) petsAdicionados.push({ nome: pNome, raca: pRaca });
+                    const pIdade = div.querySelector('.pet-idade').value.trim();
+                    const pSexo = div.querySelector('.pet-sexo').value;
+                    const pPeso = div.querySelector('.pet-peso').value.trim();
+
+                    if (pNome) {
+                        petsAdicionados.push({ 
+                            nome: pNome, 
+                            raca: pRaca,
+                            idade: pIdade,
+                            sexo: pSexo,
+                            peso: pPeso
+                        });
+                    }
                 });
 
                 try {

@@ -93,6 +93,8 @@ db.serialize(() => {
         nome TEXT NOT NULL,
         cpf TEXT,
         telefone TEXT,
+        endereco TEXT,
+        pets TEXT,
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
     )`);
     });
@@ -360,10 +362,13 @@ app.get('/api/clientes/:clinica_id', (req, res) => {
 });
 
 app.post('/api/clientes', (req, res) => {
-    const { clinic_id, nome, cpf, telefone } = req.body;
-    db.run(`INSERT INTO clientes (clinic_id, nome, cpf, telefone) VALUES (?, ?, ?, ?)`, 
-    [clinic_id, nome, cpf, telefone], function(err) {
-        if (err) return res.status(500).json({ error: "Erro ao salvar cliente." });
+    const { clinic_id, nome, cpf, telefone, endereco, pets } = req.body;
+    db.run(`INSERT INTO clientes (clinic_id, nome, cpf, telefone, endereco, pets) VALUES (?, ?, ?, ?, ?, ?)`, 
+    [clinic_id, nome, cpf, telefone, endereco, JSON.stringify(pets || [])], function(err) {
+        if (err) {
+            console.error("Erro no Banco:", err);
+            return res.status(500).json({ error: "Erro ao salvar cliente." });
+        }
         
         registrarAuditoria(clinic_id, req.headers['x-usuario-nome'] || 'Desconhecido', `Cadastrou o cliente: ${nome}`);
         res.json({ success: true, id: this.lastID });
