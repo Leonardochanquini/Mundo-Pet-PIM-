@@ -1797,6 +1797,7 @@
                     const pIdade = div.querySelector('.pet-idade').value.trim();
                     const pSexo = div.querySelector('.pet-sexo').value;
                     const pPeso = div.querySelector('.pet-peso').value.trim();
+                    const pObs = div.querySelector('.pet-obs').value.trim(); // <-- ESTA É A LINHA QUE FALTAVA
 
                     if (pNome) {
                         petsAdicionados.push({ 
