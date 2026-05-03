@@ -1404,7 +1404,9 @@
         <div class="space-y-4">
             <div>
                 <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Cliente *</label>
-                <input id="agenda-cliente" placeholder="Ex: João da Silva" class="input-pet" required>
+                <select id="agenda-cliente" class="input-pet">
+                    <option value="">Coloque o nome do cliente</option>
+                </select>
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Pet *</label>
@@ -1436,6 +1438,22 @@
             </div>
         </div>
     `;
+
+        fetch(`http://localhost:8080/api/clientes/${clinicaId}`) // Ajuste a rota se a sua URL de clientes for diferente
+            .then(res => res.json())
+            .then(clientes => {
+                const selectCliente = document.getElementById('agenda-cliente');
+                if (clientes && clientes.length > 0) {
+                    selectCliente.innerHTML = '<option value="">Selecione o Cliente</option>' + 
+                        clientes.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+                } else {
+                    selectCliente.innerHTML = '<option value="">Nenhum cliente cadastrado</option>';
+                }
+            })
+            .catch(err => {
+                console.error("Erro ao carregar clientes:", err);
+                document.getElementById('agenda-cliente').innerHTML = '<option value="">Erro ao carregar</option>';
+            });
 
     document.getElementById('modal-confirmar').onclick = () => {
         const cliente = document.getElementById('agenda-cliente').value;
