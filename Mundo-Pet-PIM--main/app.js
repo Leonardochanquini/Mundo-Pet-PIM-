@@ -1525,7 +1525,7 @@
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-500 mb-1 block">Tipo de Atendimento</label>
-                <select id="agenda-tipo" class="input-pet">
+                <select id="agenda-tipo" class="input-pet" onchange="document.getElementById('container-especialidade').style.display = this.value === 'Consulta' ? 'block' : 'none'">
                     <option value="Consulta">Consulta</option>
                     <option value="Retorno">Retorno</option>
                     <option value="Exame">Exame</option>
@@ -1533,13 +1533,10 @@
                     <option value="Banho/Tosa">Banho/Tosa</option>
                 </select>
             </div>
-            <div>
-                <label class="text-xs font-bold text-gray-500 mb-1 block">Especialidade / Tipo de Consulta</label>
+            <div id="container-especialidade" style="display: block;">
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Especialidade</label>
                 <select id="agenda-especialidade" class="input-pet">
                     <option value="Clínica Geral">Clínica Geral</option>
-                    <option value="Dermatologia">Dermatologia</option>
-                    <option value="Pediatria">Pediatria</option>
-                    <option value="Ortopedia">Ortopedia</option>
                     <option value="Cardiologia">Cardiologia</option>
                 </select>
             </div>
@@ -1594,7 +1591,7 @@
             return mostrarPopup('⚠️ Atenção', 'Preencha Cliente, Pet, Data e Hora.');
         }
 
-        const novoAgendamento = { clinic_id: clinicaId, cliente, pet, data, hora, tipo, especialidade, obs };
+        const novoAgendamento = { clinic_id: clinicaId, cliente, pet, data, hora, tipo, especialidade: tipo === 'Consulta' ? especialidade : null, obs };
 
         try {
             await fetch('http://localhost:8080/api/agenda', {
