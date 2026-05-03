@@ -555,7 +555,7 @@
                             <div class="p-4 border border-gray-200 rounded-xl mb-3 bg-white shadow-sm">
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="font-black text-blue-600 text-lg">🕒 ${a.hora}</span>
-                                    <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-md text-xs font-bold uppercase">${a.tipo}</span>
+                                    <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-md text-xs font-bold uppercase">${a.tipo} - ${a.especialidade || 'Clínica Geral'}</span>
                                 </div>
                                 <p class="text-sm text-gray-800"><b class="text-gray-500">Cliente:</b> ${a.cliente}</p>
                                 <p class="text-sm text-gray-800"><b class="text-gray-500">Pet:</b> ${a.pet}</p>
@@ -1511,7 +1511,7 @@
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Pet *</label>
-                <input id="agenda-pet" placeholder="Ex: Rex" class="input-pet" required>
+                <input id="agenda-pet" placeholder="Selecione o cliente primeiro" class="input-pet bg-gray-100 cursor-not-allowed" required disabled>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -1534,11 +1534,36 @@
                 </select>
             </div>
             <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Especialidade / Tipo de Consulta</label>
+                <select id="agenda-especialidade" class="input-pet">
+                    <option value="Clínica Geral">Clínica Geral</option>
+                    <option value="Dermatologia">Dermatologia</option>
+                    <option value="Pediatria">Pediatria</option>
+                    <option value="Ortopedia">Ortopedia</option>
+                    <option value="Cardiologia">Cardiologia</option>
+                </select>
+            </div>
+            <div>
                 <label class="text-xs font-bold text-gray-500 mb-1 block">Observações</label>
                 <textarea id="agenda-obs" placeholder="Motivo da consulta, sintomas, etc..." class="input-pet" rows="2"></textarea>
             </div>
         </div>
     `;
+
+        // Ativa o input de Pet apenas se um cliente for selecionado
+        document.getElementById('agenda-cliente').addEventListener('change', function() {
+            const petInput = document.getElementById('agenda-pet');
+            if (this.value !== "") {
+                petInput.disabled = false;
+                petInput.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                petInput.placeholder = "Ex: Rex";
+            } else {
+                petInput.disabled = true;
+                petInput.classList.add('bg-gray-100', 'cursor-not-allowed');
+                petInput.placeholder = "Selecione o cliente primeiro";
+                petInput.value = ""; 
+            }
+        });
 
         fetch(`http://localhost:8080/api/clientes/${clinicaId}`) // Ajuste a rota se a sua URL de clientes for diferente
             .then(res => res.json())
@@ -1563,12 +1588,13 @@
         const hora = document.getElementById('agenda-hora').value;
         const tipo = document.getElementById('agenda-tipo').value;
         const obs = document.getElementById('agenda-obs').value;
+        const especialidade = document.getElementById('agenda-especialidade').value; // <-- LINHA ADICIONADA
 
         if (!cliente || !pet || !data || !hora) {
             return mostrarPopup('⚠️ Atenção', 'Preencha Cliente, Pet, Data e Hora.');
         }
 
-        const novoAgendamento = { clinic_id: clinicaId, cliente, pet, data, hora, tipo, obs };
+        const novoAgendamento = { clinic_id: clinicaId, cliente, pet, data, hora, tipo, especialidade, obs };
 
         try {
             await fetch('http://localhost:8080/api/agenda', {
