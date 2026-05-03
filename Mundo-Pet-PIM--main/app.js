@@ -603,7 +603,7 @@
 
                 cont.innerHTML = `
                     <div class="flex justify-between mb-4">
-                        <input id="busca-cliente" onkeyup="filtrarClientes()" placeholder="Buscar Nome, CPF ou Telefone" class="input-pet w-1/2">
+                        <input id="busca-cliente" onkeyup="filtrarClientes()" placeholder="Buscar por CPF, Nome do cliente ou Pet" class="input-pet w-1/2">
                         <button onclick="abrirModalCliente()" class="btn-principal px-4 py-2 rounded-lg">+ Novo Cliente</button>
                     </div>
 
@@ -1666,11 +1666,27 @@
 
         function filtrarClientes() {
             const q = document.getElementById('busca-cliente').value.toLowerCase();
-            const filtrados = (window.clientesLista || []).filter(c => 
-                c.nome.toLowerCase().includes(q) || 
-                (c.cpf && c.cpf.includes(q)) || 
-                (c.telefone && c.telefone.includes(q))
-            );
+            
+            const filtrados = (window.clientesLista || []).filter(c => {
+                // 1. Verifica Nome do Cliente ou CPF
+                const matchCliente = c.nome.toLowerCase().includes(q) || 
+                                     (c.cpf && c.cpf.includes(q));
+                
+                // 2. Verifica Nome do Pet (deserializando o JSON do banco)
+                let matchPet = false;
+                if (c.pets) {
+                    try {
+                        const petsArray = typeof c.pets === 'string' ? JSON.parse(c.pets) : c.pets;
+                        matchPet = petsArray.some(p => p.nome && p.nome.toLowerCase().includes(q));
+                    } catch (e) {
+                        console.error("Erro ao ler os pets:", e);
+                    }
+                }
+
+                // Retorna se achou no cliente OU no pet
+                return matchCliente || matchPet;
+            });
+            
             renderClientes(filtrados);
         }
 
