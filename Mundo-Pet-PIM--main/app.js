@@ -622,7 +622,9 @@
                 tit.innerText = "Pets";
 
                 cont.innerHTML = `
-                    <input id="busca-pet" onkeyup="filtrarPets()" placeholder="Buscar por nome do pet ou raça" class="input-pet mb-4">
+                    <div class="flex justify-between mb-4">
+                        <input id="busca-pet" onkeyup="filtrarPets()" placeholder="Buscar por nome do pet ou raça" class="input-pet w-1/2">
+                    </div>
 
                     <div class="card">
                         <table>
@@ -1686,8 +1688,8 @@
                 try {
                     const petsArray = typeof c.pets === 'string' ? JSON.parse(c.pets) : c.pets;
                     const petsFiltrados = petsArray.filter(p => 
-                        (p.nome && p.nome.toLowerCase().includes(q)) || 
-                        (p.raca && p.raca.toLowerCase().includes(q))
+                        (p.nome && p.nome.toLowerCase().startsWith(q)) || 
+                        (p.raca && p.raca.toLowerCase().startsWith(q))
                     );
                     if (petsFiltrados.length > 0) {
                         return { ...c, pets: JSON.stringify(petsFiltrados) };
