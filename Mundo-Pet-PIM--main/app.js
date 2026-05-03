@@ -609,9 +609,9 @@
 
                     <div class="card">
                         <table>
-                            <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th></tr></thead>
+                            <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Ações</th></tr></thead>
                             <tbody id="tabela-clientes-corpo">
-                                <tr><td colspan="3" class="text-center text-gray-500">Carregando...</td></tr>
+                                <tr><td colspan="4" class="text-center text-gray-500">Carregando...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1716,7 +1716,7 @@
             const tbody = document.getElementById('tabela-clientes-corpo');
             if (!tbody) return;
             if (lista.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-400">Nenhum cliente cadastrado.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-400">Nenhum cliente cadastrado.</td></tr>`;
                 return;
             }
             tbody.innerHTML = lista.map(c => `
@@ -1724,6 +1724,9 @@
                     <td class="font-bold">${c.nome}</td>
                     <td>${c.cpf || '-'}</td>
                     <td>${c.telefone || '-'}</td>
+                    <td>
+                        <button onclick="verDetalhesCliente(${c.id})" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded-lg font-bold hover:bg-blue-100 transition">Ver Detalhes</button>
+                    </td>
                 </tr>
             `).join('');
         }
@@ -1967,4 +1970,58 @@ window.atualizarHorarios = function(dataSelecionada) {
             selectHora.innerHTML += `<option value="${hora}">${hora}</option>`;
         }
     });
+};
+
+window.verDetalhesCliente = function(id) {
+    const cliente = window.clientesLista.find(c => c.id === id);
+    if(!cliente) return;
+    
+    let petsHtml = '<p class="text-sm text-gray-500 italic">Nenhum pet cadastrado.</p>';
+    if(cliente.pets) {
+        try {
+            const pets = typeof cliente.pets === 'string' ? JSON.parse(cliente.pets) : cliente.pets;
+            if(pets.length > 0) {
+                petsHtml = pets.map(p => `
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-100 mb-2">
+                        <p class="font-bold text-blue-800">🐾 ${p.nome} <span class="text-xs font-normal text-gray-600">(${p.raca || 'Raça não informada'})</span></p>
+                        <div class="grid grid-cols-3 gap-2 mt-2">
+                            <p class="text-xs text-gray-700"><b>Idade:</b> ${p.idade || '-'}</p>
+                            <p class="text-xs text-gray-700"><b>Sexo:</b> ${p.sexo || '-'}</p>
+                            <p class="text-xs text-gray-700"><b>Peso:</b> ${p.peso ? p.peso + ' kg' : '-'}</p>
+                        </div>
+                        ${p.obs ? `<p class="text-xs text-gray-600 mt-2 bg-white p-2 rounded border border-blue-100"><b>Obs:</b> ${p.obs}</p>` : ''}
+                    </div>
+                `).join('');
+            }
+        } catch(e) {
+            console.error("Erro ao ler pets do cliente:", e);
+        }
+    }
+
+    document.getElementById('modal-titulo').innerText = "Detalhes do Cliente";
+    document.getElementById('modal-body').innerHTML = `
+        <div class="space-y-5">
+            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p class="text-xl font-black text-gray-800 mb-3">${cliente.nome}</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <p class="text-sm text-gray-600"><b>CPF:</b><br>${cliente.cpf || 'Não informado'}</p>
+                    <p class="text-sm text-gray-600"><b>Telefone:</b><br>${cliente.telefone || 'Não informado'}</p>
+                </div>
+                <p class="text-sm text-gray-600 mt-3"><b>Endereço:</b><br>${cliente.endereco || 'Não informado'}</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-gray-700 mb-3 border-b pb-1 text-lg">Pets Cadastrados</h4>
+                <div class="max-h-64 overflow-y-auto pr-2">
+                    ${petsHtml}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const btn = document.getElementById('modal-confirmar');
+    btn.innerText = "Fechar";
+    btn.style.background = '#9ca3af'; // Volta para cor cinza para agir como botão fechar
+    btn.onclick = fecharModal;
+    
+    document.getElementById('modal-container').style.display = 'flex';
 };
