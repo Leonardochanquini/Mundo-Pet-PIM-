@@ -476,25 +476,81 @@
             }, 100);
         }
 
-            else if(mod === 'agenda') {
+             else if(mod === 'agenda') {
                 tit.innerText = "Agenda";
+                
+                // Inicializa variáveis do calendário globalmente para não resetar
+                if (typeof window.mesAtual === 'undefined') {
+                    window.dataAtualCal = new Date();
+                    window.mesAtual = window.dataAtualCal.getMonth();
+                    window.anoAtual = window.dataAtualCal.getFullYear();
+                }
 
-                const hoje = new Date();
-                const dia = hoje.getDate();
+                // Função que desenha o calendário
+                window.renderizarCalendario = function() {
+                    const contCalendario = document.getElementById('calendario-container');
+                    if (!contCalendario) return;
 
-                cont.innerHTML = `
-                    <div class="flex justify-end mb-4">
-                        <button onclick="abrirModalAgendamento()" class="btn-principal px-4 py-2 rounded-lg">+ Novo Agendamento</button>
-                    </div>
+                    const hoje = new Date();
+                    const primeiroDiaMes = new Date(window.anoAtual, window.mesAtual, 1).getDay();
+                    const diasNoMes = new Date(window.anoAtual, window.mesAtual + 1, 0).getDate();
+                    
+                    const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                    document.getElementById('mes-ano-display').innerText = `${nomesMeses[window.mesAtual]} ${window.anoAtual}`;
 
-                    <div class="card grid grid-cols-7 gap-2 text-center">
-                        ${[...Array(30)].map((_,i)=>`
-                            <div class="${i+1===dia?'bg-blue-500 text-white':''} p-2 rounded">
-                                ${i+1}
+                    let htmlDias = '';
+                    
+                    // Dias vazios antes do início do mês
+                    for (let i = 0; i < primeiroDiaMes; i++) {
+                        htmlDias += `<div class="p-2"></div>`;
+                    }
+
+                    // Dias preenchidos do mês
+                    for (let i = 1; i <= diasNoMes; i++) {
+                        const isHoje = (i === hoje.getDate() && window.mesAtual === hoje.getMonth() && window.anoAtual === hoje.getFullYear());
+                        htmlDias += `
+                            <div class="${isHoje ? 'bg-blue-500 text-white font-bold shadow' : 'bg-gray-50 hover:bg-gray-200 text-gray-700 cursor-pointer'} p-2 rounded transition-colors" onclick="alert('Visualizar agenda de: ${i}/${window.mesAtual + 1}/${window.anoAtual}')">
+                                ${i}
                             </div>
-                        `).join('')}
+                        `;
+                    }
+                    contCalendario.innerHTML = htmlDias;
+                };
+
+                // Função para avançar ou recuar os meses
+                window.mudarMes = function(step) {
+                    window.mesAtual += step;
+                    if (window.mesAtual < 0) {
+                        window.mesAtual = 11;
+                        window.anoAtual--;
+                    } else if (window.mesAtual > 11) {
+                        window.mesAtual = 0;
+                        window.anoAtual++;
+                    }
+                    window.renderizarCalendario();
+                };
+
+                // HTML do calendário interativo mantendo o padrão visual
+                cont.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-4">
+                            <button onclick="window.mudarMes(-1)" class="px-3 py-1 bg-white border border-gray-300 hover:bg-gray-100 rounded font-bold text-gray-600">&lt;</button>
+                            <h3 id="mes-ano-display" class="font-bold text-lg min-w-[150px] text-center text-gray-800"></h3>
+                            <button onclick="window.mudarMes(1)" class="px-3 py-1 bg-white border border-gray-300 hover:bg-gray-100 rounded font-bold text-gray-600">&gt;</button>
+                        </div>
+                        <button onclick="abrirModalAgendamento()" class="btn-principal px-4 py-2 rounded-lg font-bold shadow-sm">+ Novo Agendamento</button>
+                    </div>
+                    <div class="card">
+                        <div class="grid grid-cols-7 gap-2 text-center font-bold text-gray-400 text-xs uppercase mb-2">
+                            <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                        </div>
+                        <div id="calendario-container" class="grid grid-cols-7 gap-2 text-center">
+                            </div>
                     </div>
                 `;
+
+                // Renderiza assim que injetar o HTML
+                setTimeout(window.renderizarCalendario, 0);
             }
 
             else if(mod === 'clientes') {
