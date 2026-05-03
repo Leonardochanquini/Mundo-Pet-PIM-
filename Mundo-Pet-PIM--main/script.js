@@ -345,7 +345,3 @@ app.post('/api/agenda', (req, res) => {
 app.listen(port, () => {
     console.log(`🚀 Servidor Mundo Pet rodando em http://localhost:${port}`);
 });
-
-app.listen(port, () => {
-    console.log(`🚀 Servidor Mundo Pet rodando em http://localhost:${port}`);
-});

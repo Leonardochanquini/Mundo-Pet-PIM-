@@ -1525,7 +1525,16 @@
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-500 mb-1 block">Tipo de Atendimento</label>
-                <select id="agenda-tipo" class="input-pet" onchange="document.getElementById('container-especialidade').style.display = this.value === 'Consulta' ? 'block' : 'none'">
+                <select id="agenda-tipo" class="input-pet" onchange="
+                    const mostrar = (this.value === 'Consulta' || this.value === 'Retorno');
+                    document.getElementById('container-especialidade').style.display = mostrar ? 'block' : 'none';
+                    if (!mostrar) {
+                        document.getElementById('div-veterinario').style.display = 'none';
+                        document.getElementById('agenda-veterinario').value = '';
+                    } else {
+                        window.atualizarVeterinarios();
+                    }
+                ">
                     <option value="Consulta">Consulta</option>
                     <option value="Retorno">Retorno</option>
                     <option value="Exame">Exame</option>
