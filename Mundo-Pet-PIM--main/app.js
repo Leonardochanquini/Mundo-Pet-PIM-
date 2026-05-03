@@ -1668,16 +1668,16 @@
             const q = document.getElementById('busca-cliente').value.toLowerCase();
             
             const filtrados = (window.clientesLista || []).filter(c => {
-                // 1. Verifica Nome do Cliente ou CPF
-                const matchCliente = c.nome.toLowerCase().includes(q) || 
-                                     (c.cpf && c.cpf.includes(q));
+                // 1. Verifica Nome do Cliente ou CPF (Agora usando startsWith)
+                const matchCliente = c.nome.toLowerCase().startsWith(q) || 
+                                     (c.cpf && c.cpf.startsWith(q));
                 
                 // 2. Verifica Nome do Pet (deserializando o JSON do banco)
                 let matchPet = false;
                 if (c.pets) {
                     try {
                         const petsArray = typeof c.pets === 'string' ? JSON.parse(c.pets) : c.pets;
-                        matchPet = petsArray.some(p => p.nome && p.nome.toLowerCase().includes(q));
+                        matchPet = petsArray.some(p => p.nome && p.nome.toLowerCase().startsWith(q));
                     } catch (e) {
                         console.error("Erro ao ler os pets:", e);
                     }
