@@ -622,22 +622,18 @@
                 tit.innerText = "Pets";
 
                 cont.innerHTML = `
-                    <input placeholder="Buscar por nome ou raça" class="input-pet mb-4">
+                    <input id="busca-pet" onkeyup="filtrarPets()" placeholder="Buscar por nome do pet ou raça" class="input-pet mb-4">
 
                     <div class="card">
                         <table>
-                            <thead><tr><th>Nome</th><th>Raça</th><th>Dono</th><th>Alerta</th></tr></thead>
-                            <tbody>
-                                <tr>
-                                    <td>Rex</td>
-                                    <td>Pastor Alemão</td>
-                                    <td>João Silva</td>
-                                    <td class="text-red-500 font-bold">Agressivo</td>
-                                </tr>
+                            <thead><tr><th>Nome do Pet</th><th>Raça</th><th>Dono (Cliente)</th><th>Idade/Sexo</th></tr></thead>
+                            <tbody id="tabela-pets-corpo">
+                                <tr><td colspan="4" class="text-center text-gray-500">Carregando...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 `;
+                carregarPets();
             }
 
             else if(mod === 'fila') {
@@ -1636,6 +1632,72 @@
 }
 
 // ================= FUNÇÕES DE CLIENTES =================
+        async function carregarPets() {
+            try {
+                const res = await fetch(`http://localhost:8080/api/clientes/${clinicaId}`);
+                if (res.ok) {
+                    window.clientesLista = await res.json();
+                    renderPets(window.clientesLista);
+                }
+            } catch (e) {
+                console.error("Erro ao carregar pets", e);
+            }
+        }
+
+        function renderPets(clientes) {
+            const tbody = document.getElementById('tabela-pets-corpo');
+            if (!tbody) return;
+
+            let linhasHtml = '';
+            
+            clientes.forEach(c => {
+                if (c.pets) {
+                    try {
+                        const petsArray = typeof c.pets === 'string' ? JSON.parse(c.pets) : c.pets;
+                        petsArray.forEach(p => {
+                            linhasHtml += `
+                                <tr>
+                                    <td class="font-bold">${p.nome || '-'}</td>
+                                    <td>${p.raca || '-'}</td>
+                                    <td>${c.nome}</td>
+                                    <td class="text-xs text-gray-500">${p.idade || '-'} / ${p.sexo || '-'}</td>
+                                </tr>
+                            `;
+                        });
+                    } catch (e) {
+                        console.error("Erro ao processar pets", e);
+                    }
+                }
+            });
+
+            if (linhasHtml === '') {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-400">Nenhum pet cadastrado.</td></tr>`;
+            } else {
+                tbody.innerHTML = linhasHtml;
+            }
+        }
+
+        function filtrarPets() {
+            const q = document.getElementById('busca-pet').value.toLowerCase();
+            if (!window.clientesLista) return;
+            
+            const clientesFiltrados = window.clientesLista.map(c => {
+                if (!c.pets) return null;
+                try {
+                    const petsArray = typeof c.pets === 'string' ? JSON.parse(c.pets) : c.pets;
+                    const petsFiltrados = petsArray.filter(p => 
+                        (p.nome && p.nome.toLowerCase().includes(q)) || 
+                        (p.raca && p.raca.toLowerCase().includes(q))
+                    );
+                    if (petsFiltrados.length > 0) {
+                        return { ...c, pets: JSON.stringify(petsFiltrados) };
+                    }
+                } catch(e) {}
+                return null;
+            }).filter(c => c !== null);
+
+            renderPets(clientesFiltrados);
+        }
         async function carregarClientes() {
             try {
                 const res = await fetch(`http://localhost:8080/api/clientes/${clinicaId}`);
