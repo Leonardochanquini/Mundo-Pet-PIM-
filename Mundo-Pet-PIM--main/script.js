@@ -87,6 +87,14 @@ db.serialize(() => {
             obs TEXT,
             FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
         )`);
+        db.run(`CREATE TABLE IF NOT EXISTS clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clinic_id INTEGER,
+        nome TEXT NOT NULL,
+        cpf TEXT,
+        telefone TEXT,
+        FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
+    )`);
     });
 
 // --- FUNÇÃO INTERNA DE AUDITORIA ---
@@ -339,6 +347,26 @@ app.post('/api/agenda', (req, res) => {
         
         registrarAuditoria(clinic_id, req.headers['x-usuario-nome'] || 'Desconhecido', `Agendou ${tipo} para o pet ${pet} (${data} às ${hora})`);
         res.json({ success: true, message: "Agendamento salvo!", id: this.lastID });
+    });
+});
+
+// --- ROTAS DE CLIENTES ---
+
+app.get('/api/clientes/:clinica_id', (req, res) => {
+    db.all(`SELECT * FROM clientes WHERE clinic_id = ? ORDER BY nome ASC`, [req.params.clinica_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Erro ao buscar clientes." });
+        res.json(rows);
+    });
+});
+
+app.post('/api/clientes', (req, res) => {
+    const { clinic_id, nome, cpf, telefone } = req.body;
+    db.run(`INSERT INTO clientes (clinic_id, nome, cpf, telefone) VALUES (?, ?, ?, ?)`, 
+    [clinic_id, nome, cpf, telefone], function(err) {
+        if (err) return res.status(500).json({ error: "Erro ao salvar cliente." });
+        
+        registrarAuditoria(clinic_id, req.headers['x-usuario-nome'] || 'Desconhecido', `Cadastrou o cliente: ${nome}`);
+        res.json({ success: true, id: this.lastID });
     });
 });
 

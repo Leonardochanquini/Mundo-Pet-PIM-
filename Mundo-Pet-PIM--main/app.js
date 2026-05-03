@@ -603,21 +603,21 @@
 
                 cont.innerHTML = `
                     <div class="flex justify-between mb-4">
-                        <input placeholder="Buscar Nome, CPF ou Telefone" class="input-pet w-1/2">
-                        <button class="btn-principal px-4 py-2 rounded-lg">+ Novo Cliente</button>
+                        <input id="busca-cliente" onkeyup="filtrarClientes()" placeholder="Buscar Nome, CPF ou Telefone" class="input-pet w-1/2">
+                        <button onclick="abrirModalCliente()" class="btn-principal px-4 py-2 rounded-lg">+ Novo Cliente</button>
                     </div>
 
                     <div class="card">
                         <table>
-                            <thead><tr><th>Nome</th><th>Telefone</th><th>Histórico</th></tr></thead>
-                            <tbody>
-                                <tr><td>João Silva</td><td>(11)99999-9999</td><td>3 consultas</td></tr>
+                            <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th></tr></thead>
+                            <tbody id="tabela-clientes-corpo">
+                                <tr><td colspan="3" class="text-center text-gray-500">Carregando...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 `;
+                carregarClientes();
             }
-
             else if(mod === 'pets') {
                 tit.innerText = "Pets";
 
@@ -1634,6 +1634,135 @@
 
     document.getElementById('modal-container').style.display = 'flex';
 }
+
+// ================= FUNÇÕES DE CLIENTES =================
+        async function carregarClientes() {
+            try {
+                const res = await fetch(`http://localhost:8080/api/clientes/${clinicaId}`);
+                if (res.ok) {
+                    window.clientesLista = await res.json();
+                    renderClientes(window.clientesLista);
+                }
+            } catch (e) {
+                console.error("Erro ao carregar clientes", e);
+            }
+        }
+
+        function renderClientes(lista) {
+            const tbody = document.getElementById('tabela-clientes-corpo');
+            if (!tbody) return;
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-gray-400">Nenhum cliente cadastrado.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = lista.map(c => `
+                <tr>
+                    <td class="font-bold">${c.nome}</td>
+                    <td>${c.cpf || '-'}</td>
+                    <td>${c.telefone || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarClientes() {
+            const q = document.getElementById('busca-cliente').value.toLowerCase();
+            const filtrados = (window.clientesLista || []).filter(c => 
+                c.nome.toLowerCase().includes(q) || 
+                (c.cpf && c.cpf.includes(q)) || 
+                (c.telefone && c.telefone.includes(q))
+            );
+            renderClientes(filtrados);
+        }
+
+        function abrirModalCliente() {
+            document.getElementById('modal-titulo').innerText = "Novo Cliente";
+            document.getElementById('modal-body').innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Nome Completo *</label>
+                        <input id="new-cli-nome" placeholder="Ex: João da Silva" class="input-pet" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">CPF</label>
+                            <input id="new-cli-cpf" placeholder="000.000.000-00" onkeyup="mascaraCPF(this)" class="input-pet">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-500 mb-1 block">Telefone *</label>
+                            <input id="new-cli-telefone" placeholder="(00) 00000-0000" onkeyup="mascaraTelefone(this)" class="input-pet" required>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Endereço</label>
+                        <input id="new-cli-endereco" placeholder="Ex: Rua das Flores, 123" class="input-pet">
+                    </div>
+                    <div id="container-pets"></div>
+                    <button type="button" id="btn-adicionar-pet" class="bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg font-bold hover:bg-blue-100 w-full transition">+ Adicionar Pet</button>
+                </div>
+            `;
+            
+            const btn = document.getElementById('modal-confirmar');
+            btn.innerText = "Salvar Cliente";
+            btn.style.background = 'linear-gradient(90deg, #10b981, #3b82f6)';
+            
+            // Lógica para adicionar campos de Pet dinamicamente
+            document.getElementById('btn-adicionar-pet').onclick = function() {
+                const container = document.getElementById('container-pets');
+                const petCount = container.children.length + 1;
+                const petFields = `
+                    <div class="p-3 border border-gray-200 rounded-lg mt-3 bg-gray-50 relative">
+                        <h5 class="font-bold text-sm text-gray-700 mb-2">Pet ${petCount}</h5>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Pet</label>
+                                <input type="text" class="input-pet pet-nome" required>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Espécie/Raça</label>
+                                <input type="text" class="input-pet pet-raca" required>
+                            </div>
+                        </div>
+                        <button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-xs font-bold mt-2 hover:underline">Remover este Pet</button>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', petFields);
+            };
+
+           btn.onclick = async () => {
+                const nome = document.getElementById('new-cli-nome').value.trim();
+                const cpf = document.getElementById('new-cli-cpf').value.trim();
+                const telefone = document.getElementById('new-cli-telefone').value.trim();
+                const endereco = document.getElementById('new-cli-endereco').value.trim();
+
+                if (!nome || !telefone) return mostrarPopup('⚠️', 'Preencha Nome e Telefone.');
+                // Captura os dados dos pets adicionados para enviar ao banco
+                const petsAdicionados = [];
+                document.querySelectorAll('#container-pets > div').forEach(div => {
+                    const pNome = div.querySelector('.pet-nome').value.trim();
+                    const pRaca = div.querySelector('.pet-raca').value.trim();
+                    if (pNome) petsAdicionados.push({ nome: pNome, raca: pRaca });
+                });
+
+                try {
+                    const res = await fetch('http://localhost:8080/api/clientes', {
+                        method: 'POST',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify({ clinic_id: clinicaId, nome, cpf, telefone, endereco, pets: petsAdicionados })
+                    });
+                    if (res.ok) {
+                        fecharModal();
+                        mostrarPopup('✅ Sucesso', 'Cliente cadastrado com sucesso!');
+                        carregarClientes(); 
+                    } else {
+                        mostrarPopup('❌ Erro', 'Não foi possível salvar o cliente.');
+                    }
+                } catch (e) {
+                    mostrarPopup('🔌 Erro', 'Falha na conexão com o servidor na porta 8080.');
+                }
+            };
+            document.getElementById('modal-container').style.display = 'flex';
+        }
 
 window.atualizarVeterinarios = function() {
     const especialidade = document.getElementById('agenda-especialidade').value;
