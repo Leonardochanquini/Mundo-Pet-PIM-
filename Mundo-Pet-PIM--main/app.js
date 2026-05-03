@@ -1712,18 +1712,46 @@
                 const petCount = container.children.length + 1;
                 const petFields = `
                     <div class="p-3 border border-gray-200 rounded-lg mt-3 bg-gray-50 relative">
-                        <h5 class="font-bold text-sm text-gray-700 mb-2">Pet ${petCount}</h5>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Pet</label>
-                                <input type="text" class="input-pet pet-nome" required>
+                        <div class="pet-form">
+                            <h5 class="font-bold text-sm text-gray-700 mb-2">Pet ${petCount}</h5>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Pet</label>
+                                    <input type="text" class="input-pet pet-nome" required>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-500 mb-1 block">Espécie/Raça</label>
+                                    <input type="text" class="input-pet pet-raca" required>
+                                </div>
                             </div>
-                            <div>
-                                <label class="text-xs font-bold text-gray-500 mb-1 block">Espécie/Raça</label>
-                                <input type="text" class="input-pet pet-raca" required>
+                            <div class="flex gap-4 mt-3">
+                                <button type="button" onclick="
+                                    const divPet = this.closest('.relative');
+                                    const nome = divPet.querySelector('.pet-nome').value.trim();
+                                    const raca = divPet.querySelector('.pet-raca').value.trim();
+                                    if(nome) {
+                                        divPet.querySelector('.pet-nome-display').innerText = '🐾 ' + nome + (raca ? ' (' + raca + ')' : '');
+                                        divPet.querySelector('.pet-form').classList.add('hidden');
+                                        divPet.querySelector('.pet-badge').classList.remove('hidden');
+                                    } else {
+                                        alert('Preencha o nome do pet antes de salvar!');
+                                    }
+                                " class="bg-blue-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-blue-700 transition">Salvar Pet</button>
+                                <button type="button" onclick="this.closest('.relative').remove()" class="text-red-500 text-xs font-bold hover:underline flex items-center">Remover</button>
                             </div>
                         </div>
-                        <button type="button" onclick="this.parentElement.remove()" class="text-red-500 text-xs font-bold mt-2 hover:underline">Remover este Pet</button>
+                        
+                        <div class="pet-badge hidden flex justify-between items-center bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
+                            <span class="text-sm font-bold text-blue-700 pet-nome-display"></span>
+                            <div class="flex gap-3">
+                                <button type="button" onclick="
+                                    const divPet = this.closest('.relative');
+                                    divPet.querySelector('.pet-form').classList.remove('hidden');
+                                    divPet.querySelector('.pet-badge').classList.add('hidden');
+                                " class="text-gray-500 text-xs font-bold hover:text-blue-600 hover:underline">Editar</button>
+                                <button type="button" onclick="this.closest('.relative').remove()" class="text-red-500 text-xs font-bold hover:underline">Remover</button>
+                            </div>
+                        </div>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', petFields);
