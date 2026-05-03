@@ -74,7 +74,20 @@ db.serialize(() => {
         acao TEXT,
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
     )`);
-});
+    db.run(`CREATE TABLE IF NOT EXISTS agenda (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            clinic_id INTEGER,
+            cliente TEXT,
+            pet TEXT,
+            data TEXT,
+            hora TEXT,
+            tipo TEXT,
+            especialidade TEXT,
+            veterinario TEXT,
+            obs TEXT,
+            FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
+        )`);
+    });
 
 // --- FUNÇÃO INTERNA DE AUDITORIA ---
 function registrarAuditoria(clinic_id, usuario, acao) {
@@ -307,6 +320,30 @@ app.get('/api/clinica/:id', (req, res) => {
         if (err) return res.status(500).json({ error: "Erro ao buscar clínica." });
         res.json(row || {});
     });
+});
+// --- ROTAS DE AGENDA ---
+
+app.get('/api/agenda/:clinica_id', (req, res) => {
+    db.all(`SELECT * FROM agenda WHERE clinic_id = ? ORDER BY data ASC, hora ASC`, [req.params.clinica_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Erro ao buscar agenda." });
+        res.json(rows);
+    });
+});
+
+app.post('/api/agenda', (req, res) => {
+    const { clinic_id, cliente, pet, data, hora, tipo, especialidade, veterinario, obs } = req.body;
+    
+    db.run(`INSERT INTO agenda (clinic_id, cliente, pet, data, hora, tipo, especialidade, veterinario, obs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+    [clinic_id, cliente, pet, data, hora, tipo, especialidade, veterinario, obs], function(err) {
+        if (err) return res.status(500).json({ error: "Erro ao salvar agendamento." });
+        
+        registrarAuditoria(clinic_id, req.headers['x-usuario-nome'] || 'Desconhecido', `Agendou ${tipo} para o pet ${pet} (${data} às ${hora})`);
+        res.json({ success: true, message: "Agendamento salvo!", id: this.lastID });
+    });
+});
+
+app.listen(port, () => {
+    console.log(`🚀 Servidor Mundo Pet rodando em http://localhost:${port}`);
 });
 
 app.listen(port, () => {

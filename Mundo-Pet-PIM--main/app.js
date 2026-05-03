@@ -1535,10 +1535,14 @@
             </div>
             <div id="container-especialidade" style="display: block;">
                 <label class="text-xs font-bold text-gray-500 mb-1 block">Especialidade</label>
-                <select id="agenda-especialidade" class="input-pet">
+                <select id="agenda-especialidade" class="w-full p-2 border rounded mt-1" onchange="atualizarVeterinarios()">
                     <option value="Clínica Geral">Clínica Geral</option>
                     <option value="Cardiologia">Cardiologia</option>
                 </select>
+            </div>
+            <div id="div-veterinario" style="display: none;" class="mt-4">
+                <label class="block text-sm font-semibold text-gray-700">Veterinário</label>
+                <select id="agenda-veterinario" class="w-full p-2 border rounded mt-1"></select>
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-500 mb-1 block">Observações</label>
@@ -1586,12 +1590,14 @@
         const tipo = document.getElementById('agenda-tipo').value;
         const obs = document.getElementById('agenda-obs').value;
         const especialidade = document.getElementById('agenda-especialidade').value; // <-- LINHA ADICIONADA
+        const vetSelect = document.getElementById('agenda-veterinario');
+        const veterinario = vetSelect && vetSelect.value ? vetSelect.value : null;
 
         if (!cliente || !pet || !data || !hora) {
             return mostrarPopup('⚠️ Atenção', 'Preencha Cliente, Pet, Data e Hora.');
         }
 
-        const novoAgendamento = { clinic_id: clinicaId, cliente, pet, data, hora, tipo, especialidade: tipo === 'Consulta' ? especialidade : null, obs };
+        const novoAgendamento = { clinic_id: clinicaId, cliente, pet, data, hora, tipo, especialidade: tipo === 'Consulta' ? especialidade : null, veterinario: tipo === 'Consulta' ? veterinario : null, obs };
 
         try {
             await fetch('http://localhost:8080/api/agenda', {
@@ -1617,3 +1623,28 @@
 
     document.getElementById('modal-container').style.display = 'flex';
 }
+
+window.atualizarVeterinarios = function() {
+    const especialidade = document.getElementById('agenda-especialidade').value;
+    const selectVet = document.getElementById('agenda-veterinario');
+    const divVet = document.getElementById('div-veterinario');
+
+    if (!especialidade) {
+        divVet.style.display = 'none';
+        selectVet.innerHTML = '';
+        return;
+    }
+
+    // Filtra a variável global "equipe" pela especialidade selecionada
+    // Garante que lista apenas quem é veterinário/tem a especialidade
+    const veterinarios = equipe.filter(colab => colab.especialidade === especialidade);
+
+    if (veterinarios.length > 0) {
+        divVet.style.display = 'block';
+        selectVet.innerHTML = '<option value="">Selecione o Veterinário...</option>' + 
+            veterinarios.map(v => `<option value="${v.nome}">${v.nome}</option>`).join('');
+    } else {
+        divVet.style.display = 'block';
+        selectVet.innerHTML = '<option value="">Nenhum veterinário desta especialidade encontrado</option>';
+    }
+};
