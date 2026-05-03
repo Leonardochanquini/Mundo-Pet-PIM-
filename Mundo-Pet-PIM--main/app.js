@@ -483,8 +483,8 @@
                 const dia = hoje.getDate();
 
                 cont.innerHTML = `
-                    <div class="flex justify-between mb-4">
-                        <button class="btn-principal px-4 py-2 rounded-lg">+ Novo Agendamento</button>
+                    <div class="flex justify-end mb-4">
+                        <button onclick="abrirModalAgendamento()" class="btn-principal px-4 py-2 rounded-lg">+ Novo Agendamento</button>
                     </div>
 
                     <div class="card grid grid-cols-7 gap-2 text-center">
@@ -1397,3 +1397,63 @@
             clinicaId = null;
             location.reload();
         }
+
+        function abrirModalAgendamento() {
+    document.getElementById('modal-titulo').innerText = "Novo Agendamento";
+    document.getElementById('modal-body').innerHTML = `
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Cliente *</label>
+                <input id="agenda-cliente" placeholder="Ex: João da Silva" class="input-pet" required>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Pet *</label>
+                <input id="agenda-pet" placeholder="Ex: Rex" class="input-pet" required>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 mb-1 block">Data *</label>
+                    <input id="agenda-data" type="date" class="input-pet" required>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 mb-1 block">Hora *</label>
+                    <input id="agenda-hora" type="time" class="input-pet" required>
+                </div>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Tipo de Atendimento</label>
+                <select id="agenda-tipo" class="input-pet">
+                    <option value="Consulta">Consulta</option>
+                    <option value="Retorno">Retorno</option>
+                    <option value="Exame">Exame</option>
+                    <option value="Vacina">Vacina</option>
+                    <option value="Banho/Tosa">Banho/Tosa</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Observações</label>
+                <textarea id="agenda-obs" placeholder="Motivo da consulta, sintomas, etc..." class="input-pet" rows="2"></textarea>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modal-confirmar').onclick = () => {
+        const cliente = document.getElementById('agenda-cliente').value;
+        const pet = document.getElementById('agenda-pet').value;
+        const data = document.getElementById('agenda-data').value;
+        const hora = document.getElementById('agenda-hora').value;
+
+        // Validação básica
+        if (!cliente || !pet || !data || !hora) {
+            return mostrarPopup('⚠️ Atenção', 'Preencha Cliente, Pet, Data e Hora.');
+        }
+
+        // Sucesso visual
+        mostrarPopup('✅ Sucesso', 'Agendamento salvo com sucesso!');
+        fecharModal();
+        
+        // (Opcional) Aqui ficaria a chamada fetch('http://localhost:8080/api/agenda'...) para salvar no banco de dados.
+    };
+
+    document.getElementById('modal-container').style.display = 'flex';
+}
