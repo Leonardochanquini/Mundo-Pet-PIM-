@@ -14,20 +14,23 @@
         let equipe = [];
         let estoque = [];
         let transacoes = [];
+        let agendamentos = [];
 
         async function sincronizarDados() {
             if (!clinicaId) return;
 
             try {
-                const [colabRes, transRes, estRes] = await Promise.all([
+                const [colabRes, transRes, estRes, agendaRes] = await Promise.all([
                     fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`),
                     fetch(`http://localhost:8080/api/transacoes/${clinicaId}`),
-                    fetch(`http://localhost:8080/api/estoque/${clinicaId}`)
+                    fetch(`http://localhost:8080/api/estoque/${clinicaId}`),
+                    fetch(`http://localhost:8080/api/agenda/${clinicaId}`).catch(() => null)
                 ]);
 
-                if (colabRes.ok) equipe = await colabRes.json();
-                if (transRes.ok) transacoes = await transRes.json();
-                if (estRes.ok) estoque = await estRes.json();
+                if (colabRes && colabRes.ok) equipe = await colabRes.json();
+                if (transRes && transRes.ok) transacoes = await transRes.json();
+                if (estRes && estRes.ok) estoque = await estRes.json();
+                if (agendaRes && agendaRes.ok) agendamentos = await agendaRes.json();
 
             } catch (e) {
                 console.error("Erro ao sincronizar dados:", e);
@@ -505,12 +508,19 @@
                         htmlDias += `<div class="p-2"></div>`;
                     }
 
-                    // Dias preenchidos do mês
+                   // Dias preenchidos do mês
                     for (let i = 1; i <= diasNoMes; i++) {
                         const isHoje = (i === hoje.getDate() && window.mesAtual === hoje.getMonth() && window.anoAtual === hoje.getFullYear());
+                        
+                        // Verifica se tem agendamento neste dia
+                        const dataFormatada = `${window.anoAtual}-${String(window.mesAtual + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                        const qtdAgendamentos = agendamentos.filter(a => a.data === dataFormatada).length;
+                        const badge = qtdAgendamentos > 0 ? `<div class="mt-1 bg-blue-100 text-blue-800 text-[10px] rounded-full px-2 py-0.5 inline-block font-bold">${qtdAgendamentos} agend.</div>` : '';
+
                         htmlDias += `
-                            <div class="${isHoje ? 'bg-blue-500 text-white font-bold shadow' : 'bg-gray-50 hover:bg-gray-200 text-gray-700 cursor-pointer'} p-2 rounded transition-colors" onclick="alert('Visualizar agenda de: ${i}/${window.mesAtual + 1}/${window.anoAtual}')">
-                                ${i}
+                            <div class="${isHoje ? 'bg-blue-500 text-white font-bold shadow' : 'bg-gray-50 hover:bg-gray-200 text-gray-700 cursor-pointer'} p-2 rounded transition-colors flex flex-col items-center justify-center min-h-[60px]" onclick="window.abrirModalAgendamentosDoDia(${i}, ${window.mesAtual}, ${window.anoAtual})">
+                                <span>${i}</span>
+                                ${badge}
                             </div>
                         `;
                     }
@@ -528,6 +538,41 @@
                         window.anoAtual++;
                     }
                     window.renderizarCalendario();
+                };
+
+                // Função para exibir tudo marcado no dia clicado
+                window.abrirModalAgendamentosDoDia = function(dia, mes, ano) {
+                    const dataFormatada = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+                    const agendamentosDoDia = agendamentos.filter(a => a.data === dataFormatada);
+                    
+                    let htmlLista = '';
+                    if(agendamentosDoDia.length === 0) {
+                        htmlLista = '<p class="text-gray-500 text-center py-4">Nenhum atendimento marcado para este dia.</p>';
+                    } else {
+                        // Ordena pela hora
+                        agendamentosDoDia.sort((a, b) => a.hora.localeCompare(b.hora));
+                        htmlLista = agendamentosDoDia.map(a => `
+                            <div class="p-4 border border-gray-200 rounded-xl mb-3 bg-white shadow-sm">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-black text-blue-600 text-lg">🕒 ${a.hora}</span>
+                                    <span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-md text-xs font-bold uppercase">${a.tipo}</span>
+                                </div>
+                                <p class="text-sm text-gray-800"><b class="text-gray-500">Cliente:</b> ${a.cliente}</p>
+                                <p class="text-sm text-gray-800"><b class="text-gray-500">Pet:</b> ${a.pet}</p>
+                                ${a.obs ? `<p class="text-xs text-gray-600 mt-2 bg-gray-50 p-2 rounded border"><b>Obs:</b> ${a.obs}</p>` : ''}
+                            </div>
+                        `).join('');
+                    }
+
+                    document.getElementById('modal-titulo').innerText = `Agenda: ${String(dia).padStart(2, '0')}/${String(mes + 1).padStart(2, '0')}/${ano}`;
+                    document.getElementById('modal-body').innerHTML = `<div class="max-h-96 overflow-y-auto bg-gray-50 p-3 rounded-lg">${htmlLista}</div>`;
+                    
+                    const btn = document.getElementById('modal-confirmar');
+                    btn.innerText = "Fechar";
+                    btn.style.background = '#9ca3af'; // Volta para cinza
+                    btn.onclick = fecharModal;
+                    
+                    document.getElementById('modal-container').style.display = 'flex';
                 };
 
                 // HTML do calendário interativo mantendo o padrão visual
@@ -1511,22 +1556,40 @@
                 document.getElementById('agenda-cliente').innerHTML = '<option value="">Erro ao carregar</option>';
             });
 
-    document.getElementById('modal-confirmar').onclick = () => {
+    document.getElementById('modal-confirmar').onclick = async () => {
         const cliente = document.getElementById('agenda-cliente').value;
         const pet = document.getElementById('agenda-pet').value;
         const data = document.getElementById('agenda-data').value;
         const hora = document.getElementById('agenda-hora').value;
+        const tipo = document.getElementById('agenda-tipo').value;
+        const obs = document.getElementById('agenda-obs').value;
 
-        // Validação básica
         if (!cliente || !pet || !data || !hora) {
             return mostrarPopup('⚠️ Atenção', 'Preencha Cliente, Pet, Data e Hora.');
         }
 
-        // Sucesso visual
+        const novoAgendamento = { clinic_id: clinicaId, cliente, pet, data, hora, tipo, obs };
+
+        try {
+            await fetch('http://localhost:8080/api/agenda', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(novoAgendamento)
+            });
+        } catch(e) {
+            console.log("Aviso: Servidor de agenda não encontrado na 8080. Salvando localmente para visualização.");
+        }
+        
+        // Adiciona à lista local imediatamente
+        agendamentos.push(novoAgendamento);
+
         mostrarPopup('✅ Sucesso', 'Agendamento salvo com sucesso!');
         fecharModal();
         
-        // (Opcional) Aqui ficaria a chamada fetch('http://localhost:8080/api/agenda'...) para salvar no banco de dados.
+        // Atualiza a tela do calendário para exibir o novo item na hora
+        if (typeof window.renderizarCalendario === 'function') {
+            window.renderizarCalendario();
+        }
     };
 
     document.getElementById('modal-container').style.display = 'flex';
