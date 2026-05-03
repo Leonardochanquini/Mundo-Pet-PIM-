@@ -1744,7 +1744,10 @@
                                     <input type="number" step="0.1" class="input-pet pet-peso" placeholder="Ex: 5.5">
                                 </div>
                             </div>
-
+                            <div class="mt-3">
+                                <label class="text-xs font-bold text-gray-500 mb-1 block">Informações Adicionais (Alergias, Comportamento, etc.)</label>
+                                <textarea class="input-pet pet-obs" placeholder="Detalhes importantes sobre o pet..." rows="2"></textarea>
+                            </div>
                             <div class="flex gap-4 mt-3">
                                 <button type="button" onclick="
                                     const divPet = this.closest('.relative');
@@ -1801,7 +1804,8 @@
                             raca: pRaca,
                             idade: pIdade,
                             sexo: pSexo,
-                            peso: pPeso
+                            peso: pPeso,
+                            obs: pObs
                         });
                     }
                 });
