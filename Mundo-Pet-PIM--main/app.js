@@ -707,7 +707,7 @@
            else if(mod === 'caixa') {
             tit.innerText = "Caixa";
 
-            const hoje = new Date().toLocaleDateString('pt-BR');
+            const hoje = formatDt(new Date());
 
             // Filtra as transações de hoje
             const hojeTransacoes = transacoes.filter(t => t.data === hoje);
