@@ -188,7 +188,7 @@
                     navegarModulo('recepcao-dashboard');
                 } else if (clinicaLogada.role === 'Veterinário') {
                     montarMenuVet();
-                    navegarModulo('vet-agenda');
+                    navegarModulo('agenda');
 }
                 } else {
                     mostrarPopup('❌ Erro de Login', data.error || "Usuário ou senha incorretos");
@@ -231,8 +231,8 @@
 
         function montarMenuVet() {
             document.getElementById('menu-lateral').innerHTML = `
-                <div onclick="navegarModulo('vet-agenda')" class="sidebar-item">📅 Agenda</div>
-                <div onclick="navegarModulo('prontuario')" class="sidebar-item">📋 Prontuário</div>
+                <div onclick="navegarModulo('agenda')" class="sidebar-item" id="m-agenda">📅 Agenda</div>
+                <div onclick="navegarModulo('prontuario')" class="sidebar-item" id="m-prontuario">📋 Prontuário</div>
             `;
         }
 
@@ -295,6 +295,47 @@
                 carregarAuditoria(); // Fetch automático 
             
             } else if(mod === 'configuracoes') {
+                // --- INÍCIO DO CÓDIGO DA RECEPÇÃO ---
+                if (clinicaLogada.role === 'Recepção') {
+                    tit.innerText = "Configurações da Recepção";
+                    cont.innerHTML = `
+                        <div class="max-w-2xl">
+                            <div class="card mb-6">
+                                <h3 class="text-xl font-bold mb-4 border-b pb-2">Meu Perfil</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Colaborador</label>
+                                        <input value="${clinicaLogada.nome}" class="input-pet bg-gray-100 cursor-not-allowed" readonly>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Acesso</label>
+                                        <input value="${clinicaLogada.email}" class="input-pet bg-gray-100 cursor-not-allowed" readonly>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">Nível de Permissão</label>
+                                        <input value="${clinicaLogada.role}" class="input-pet bg-gray-100 font-bold text-blue-600 cursor-not-allowed" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <h3 class="text-xl font-bold mb-4 border-b pb-2">Segurança da Conta</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Acesso Atual</label>
+                                        <input value="${clinicaLogada.email || ''}" class="input-pet bg-gray-100" disabled>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-bold text-gray-500 mb-1 block">Nova Senha</label>
+                                        <input id="config-nova-senha" type="password" placeholder="Mínimo 6 caracteres" class="input-pet">
+                                    </div>
+                                    <button onclick="salvarNovaSenha()" class="btn-principal px-6 py-2 rounded-xl font-bold mt-2">Alterar Senha</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return; // O return garante que ele não carregue as configurações do Admin abaixo
+                }
+                // --- FIM DO CÓDIGO DA RECEPÇÃO ---
                 tit.innerText = "Configurações do Sistema";
                 cont.innerHTML = `
                     <div class="max-w-2xl">
