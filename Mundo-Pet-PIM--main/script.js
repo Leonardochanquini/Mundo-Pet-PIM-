@@ -375,6 +375,23 @@ app.post('/api/clientes', (req, res) => {
     });
 });
 
+app.put('/api/clientes/:id', (req, res) => {
+    const { campo, valor } = req.body;
+    
+    // Trava de segurança para atualizar apenas os campos permitidos
+    const camposPermitidos = ['nome', 'cpf', 'telefone', 'endereco'];
+    if (!camposPermitidos.includes(campo)) {
+        return res.status(400).json({ error: "Campo inválido para edição." });
+    }
+
+    db.run(`UPDATE clientes SET ${campo} = ? WHERE id = ?`, [valor, req.params.id], function(err) {
+        if (err) return res.status(500).json({ error: "Erro ao atualizar cliente." });
+        
+        registrarAuditoria(req.headers['x-clinic-id'], req.headers['x-usuario-nome'] || 'Desconhecido', `Editou o campo ${campo} do cliente ID: ${req.params.id}`);
+        res.json({ success: true });
+    });
+});
+
 app.listen(port, () => {
     console.log(`🚀 Servidor Mundo Pet rodando em http://localhost:${port}`);
 });

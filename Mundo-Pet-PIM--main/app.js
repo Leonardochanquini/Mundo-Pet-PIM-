@@ -2000,13 +2000,26 @@ window.verDetalhesCliente = function(id) {
 
     document.getElementById('modal-titulo').innerText = "Detalhes do Cliente";
     document.getElementById('modal-body').innerHTML = `
-        <div class="space-y-5">
-            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <p class="text-xl font-black text-gray-800 mb-3">${cliente.nome}</p>
+        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p class="text-xl font-black text-gray-800 mb-3 flex justify-between items-center">
+                    <span id="txt-cli-nome">${cliente.nome}</span>
+                    <button onclick="editarCampoCliente(${cliente.id}, 'nome')" class="text-blue-500 hover:text-blue-700 ml-2 text-base" title="Editar Nome">✏️</button>
+                </p>
                 <div class="grid grid-cols-2 gap-3">
-                    <p class="text-sm text-gray-600"><b>CPF:</b><br>${cliente.cpf || 'Não informado'}</p>
-                    <p class="text-sm text-gray-600"><b>Telefone:</b><br>${cliente.telefone || 'Não informado'}</p>
+                    <p class="text-sm text-gray-600">
+                        <b>CPF:</b> <button onclick="editarCampoCliente(${cliente.id}, 'cpf')" class="text-blue-500 hover:text-blue-700 ml-1 text-xs" title="Editar CPF">✏️</button><br>
+                        <span id="txt-cli-cpf">${cliente.cpf || 'Não informado'}</span>
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        <b>Telefone:</b> <button onclick="editarCampoCliente(${cliente.id}, 'telefone')" class="text-blue-500 hover:text-blue-700 ml-1 text-xs" title="Editar Telefone">✏️</button><br>
+                        <span id="txt-cli-telefone">${cliente.telefone || 'Não informado'}</span>
+                    </p>
                 </div>
+                <p class="text-sm text-gray-600 mt-3">
+                    <b>Endereço:</b> <button onclick="editarCampoCliente(${cliente.id}, 'endereco')" class="text-blue-500 hover:text-blue-700 ml-1 text-xs" title="Editar Endereço">✏️</button><br>
+                    <span id="txt-cli-endereco">${cliente.endereco || 'Não informado'}</span>
+                </p>
+            </div>
                 <p class="text-sm text-gray-600 mt-3"><b>Endereço:</b><br>${cliente.endereco || 'Não informado'}</p>
             </div>
             <div>
@@ -2025,3 +2038,47 @@ window.verDetalhesCliente = function(id) {
     
     document.getElementById('modal-container').style.display = 'flex';
 };
+
+async function editarCampoCliente(id, campo) {
+    // Pega o valor atual direto do HTML
+    const elemento = document.getElementById(`txt-cli-${campo}`);
+    let valorAtual = elemento.innerText;
+    if (valorAtual === 'Não informado') valorAtual = '';
+
+    const nomesExibicao = { nome: "Nome", cpf: "CPF", telefone: "Telefone", endereco: "Endereço" };
+    
+    // Abre popup de digitação rápida
+    let novoValor = prompt(`Editar ${nomesExibicao[campo]}:`, valorAtual);
+    
+    // Verifica se usuário digitou algo novo e não cancelou
+    if (novoValor !== null && novoValor.trim() !== valorAtual) {
+        try {
+            const res = await fetch(`http://localhost:8080/api/clientes/${id}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(), // Usa a sua função que já existe para mandar os dados de login
+                body: JSON.stringify({ campo, valor: novoValor.trim() })
+            });
+
+            if (res.ok) {
+                // Atualiza visualmente na tela na mesma hora
+                elemento.innerText = novoValor.trim() || 'Não informado';
+                
+                // Atualiza a tabela que está atrás do modal caso o nome tenha mudado
+                if (window.clientesLista) {
+                    const cli = window.clientesLista.find(c => c.id === id);
+                    if (cli) cli[campo] = novoValor.trim();
+                    if(typeof filtrarClientes === 'function') filtrarClientes(); 
+                }
+                
+                mostrarPopup('✅ Sucesso', `${nomesExibicao[campo]} atualizado com sucesso!`);
+                
+                // Recarrega os dados para manter o sistema em dia (isso se sua função chamar verDetalhesCliente)
+                if (typeof verDetalhesCliente === 'function') verDetalhesCliente(id);
+            } else {
+                mostrarPopup('❌ Erro', 'Não foi possível atualizar o dado.');
+            }
+        } catch (e) {
+            mostrarPopup('🔌 Erro', 'Erro de conexão com o servidor.');
+        }
+    }
+}
