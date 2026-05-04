@@ -17,16 +17,19 @@ db.serialize(() => {
     console.log("🛠️  Configurando banco de dados...");
 
     db.run(`CREATE TABLE IF NOT EXISTS clinicas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    cnpj TEXT UNIQUE,
-    telefone TEXT,
-    endereco TEXT,
-    email_contato TEXT,
-    categorias_prontuario TEXT,
-    tipos_animais TEXT,
-    cargos TEXT
-)`);
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        cnpj TEXT UNIQUE,
+        telefone TEXT,
+        endereco TEXT,
+        email_contato TEXT,
+        categorias_prontuario TEXT,
+        tipos_animais TEXT,
+        cargos TEXT,
+        logotipo TEXT
+    )`, () => {
+        db.run(`ALTER TABLE clinicas ADD COLUMN logotipo TEXT`, (err) => {});
+});
 
     db.run(`CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

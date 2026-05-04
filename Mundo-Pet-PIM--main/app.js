@@ -208,7 +208,7 @@
                     irPara('app-container');
                     document.getElementById('clinica-tag').innerText = clinicaLogada.nomeClinica || `Clínica ${clinicaId}`;
                     
-                    if (clinicaLogada.role === 'Administrador' || clinicaLogada.role === 'Recepção') {
+                    if (clinicaLogada.role === 'Administrador' || clinicaLogada.role === 'Recepção' || clinicaLogada.role === 'Veterinário') {
                         document.getElementById('menu-configuracoes').classList.remove('hidden');
                     } else {
                         document.getElementById('menu-configuracoes').classList.add('hidden');
@@ -331,9 +331,9 @@
                 carregarAuditoria(); // Fetch automático 
             
             } else if(mod === 'configuracoes') {
-                // --- INÍCIO DO CÓDIGO DA RECEPÇÃO ---
-                if (clinicaLogada.role === 'Recepção') {
-                    tit.innerText = "Configurações da Recepção";
+                // --- INÍCIO DO CÓDIGO DA RECEPÇÃO E VETERINÁRIO ---
+                if (clinicaLogada.role === 'Recepção' || clinicaLogada.role === 'Veterinário') {
+                    tit.innerText = clinicaLogada.role === 'Veterinário' ? "Configurações da Conta" : "Configurações da Recepção";
                     cont.innerHTML = `
                         <div class="max-w-2xl">
                             <div class="card mb-6">
@@ -1689,6 +1689,7 @@
             const novoTelefone = document.getElementById('config-telefone-clinica').value;
             const novoEndereco = document.getElementById('config-endereco-clinica').value;
             const novoEmail = document.getElementById('config-email-contato').value;
+            const novoLogo = document.getElementById('config-logo-base64').value; // <-- ADICIONADO AQUI
             
             const novasCategorias = document.getElementById('config-categorias-prontuario-hidden').value;
             const novosAnimais = document.getElementById('config-tipos-animais-hidden').value;
@@ -1701,12 +1702,14 @@
                     body: JSON.stringify({ 
                         nome: novoNome, cnpj: novoCNPJ, telefone: novoTelefone, 
                         endereco: novoEndereco, email_contato: novoEmail, 
+                        logotipo: novoLogo, // <-- ADICIONADO AQUI
                         categorias_prontuario: novasCategorias, tipos_animais: novosAnimais, cargos: novosCargos 
                     })
                 });
 
                 if (res.ok) {
                     clinicaLogada.nomeClinica = novoNome;
+                    clinicaLogada.logo = novoLogo; // <-- ADICIONADO AQUI
                     clinicaLogada.categorias_prontuario = novasCategorias;
                     clinicaLogada.tipos_animais = novosAnimais;
                     clinicaLogada.cargos = novosCargos;
