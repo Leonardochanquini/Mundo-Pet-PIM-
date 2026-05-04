@@ -2040,45 +2040,86 @@ window.verDetalhesCliente = function(id) {
 };
 
 async function editarCampoCliente(id, campo) {
-    // Pega o valor atual direto do HTML
     const elemento = document.getElementById(`txt-cli-${campo}`);
     let valorAtual = elemento.innerText;
     if (valorAtual === 'Não informado') valorAtual = '';
 
     const nomesExibicao = { nome: "Nome", cpf: "CPF", telefone: "Telefone", endereco: "Endereço" };
     
-    // Abre popup de digitação rápida
-    let novoValor = prompt(`Editar ${nomesExibicao[campo]}:`, valorAtual);
+    // 1. Cria o pop-up customizado com a identidade visual do site (se ainda não existir)
+    let editPopup = document.getElementById('custom-edit-popup');
+    if (!editPopup) {
+        editPopup = document.createElement('div');
+        editPopup.id = 'custom-edit-popup';
+        editPopup.className = 'popup-overlay'; // Usa a mesma classe de fundo escuro do seu CSS
+        editPopup.style.zIndex = '3000'; // Garante que fique por cima do modal atual
+        
+        editPopup.innerHTML = `
+            <div class="popup-content" style="max-width: 400px; width: 90%;">
+                <h3 id="custom-edit-titulo" class="text-xl font-bold mb-4 text-gray-800"></h3>
+                <input id="custom-edit-input" type="text" class="input-pet mb-6 text-base">
+                <div class="flex gap-3">
+                    <button id="custom-edit-cancelar" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-300 transition">Cancelar</button>
+                    <button id="custom-edit-salvar" class="flex-1 btn-principal py-3 rounded-xl font-bold">Salvar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(editPopup);
+    }
+
+    // 2. Insere os dados atuais no pop-up
+    document.getElementById('custom-edit-titulo').innerText = `Editar ${nomesExibicao[campo]}:`;
+    const inputField = document.getElementById('custom-edit-input');
+    inputField.value = valorAtual;
     
-    // Verifica se usuário digitou algo novo e não cancelou
+    // Aplica a máscara correspondente enquanto o usuário digita
+    inputField.onkeyup = function() {
+        if (campo === 'cpf') mascaraCPF(this);
+        if (campo === 'telefone') mascaraTelefone(this);
+    };
+
+    // 3. Exibe o pop-up e foca no input
+    editPopup.style.display = 'flex';
+    inputField.focus();
+
+    // 4. Pausa a função aguardando o usuário clicar em Salvar ou Cancelar (Substitui o prompt do navegador)
+    const novoValor = await new Promise((resolve) => {
+        document.getElementById('custom-edit-salvar').onclick = () => {
+            editPopup.style.display = 'none';
+            resolve(inputField.value);
+        };
+        document.getElementById('custom-edit-cancelar').onclick = () => {
+            editPopup.style.display = 'none';
+            resolve(null);
+        };
+    });
+
+    // 5. Continua com a mesma lógica que você já tinha para salvar no banco de dados[cite: 1]
     if (novoValor !== null && novoValor.trim() !== valorAtual) {
         try {
             const res = await fetch(`http://localhost:8080/api/clientes/${id}`, {
                 method: 'PUT',
-                headers: getAuthHeaders(), // Usa a sua função que já existe para mandar os dados de login
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ campo, valor: novoValor.trim() })
             });
 
             if (res.ok) {
-                // Atualiza visualmente na tela na mesma hora
                 elemento.innerText = novoValor.trim() || 'Não informado';
                 
-                // Atualiza a tabela que está atrás do modal caso o nome tenha mudado
                 if (window.clientesLista) {
                     const cli = window.clientesLista.find(c => c.id === id);
                     if (cli) cli[campo] = novoValor.trim();
                     if(typeof filtrarClientes === 'function') filtrarClientes(); 
                 }
                 
-                mostrarPopup('✅ Sucesso', `${nomesExibicao[campo]} atualizado com sucesso!`);
+                mostrarPopup('✅ Sucesso', `${nomesExibicao[campo]} atualizado com sucesso!`);[cite, 1]
                 
-                // Recarrega os dados para manter o sistema em dia (isso se sua função chamar verDetalhesCliente)
-                if (typeof verDetalhesCliente === 'function') verDetalhesCliente(id);
+                if (typeof verDetalhesCliente === 'function') verDetalhesCliente(id);[cite, 1]
             } else {
-                mostrarPopup('❌ Erro', 'Não foi possível atualizar o dado.');
+                mostrarPopup('❌ Erro', 'Não foi possível atualizar o dado.');[cite, 1]
             }
         } catch (e) {
-            mostrarPopup('🔌 Erro', 'Erro de conexão com o servidor.');
+            mostrarPopup('🔌 Erro', 'Erro de conexão com o servidor.');[cite, 1]
         }
     }
 }
