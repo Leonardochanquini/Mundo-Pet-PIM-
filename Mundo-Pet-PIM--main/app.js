@@ -709,24 +709,55 @@
 
             const hoje = new Date().toLocaleDateString('pt-BR');
 
+            // Filtra as transações de hoje
             const hojeTransacoes = transacoes.filter(t => t.data === hoje);
             const faturamento = hojeTransacoes
                 .filter(t => t.tipo === 'entrada')
                 .reduce((a,b)=>a+b.valor, 0);
 
+            // Gera as linhas da tabela com os lançamentos
+            const linhasCaixa = hojeTransacoes.length > 0 
+                ? hojeTransacoes.map(t => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-2">${t.desc}</td>
+                        <td class="py-3 px-2">${t.metodo}</td>
+                        <td class="py-3 px-2 font-bold text-right ${t.tipo === 'entrada' ? 'text-green-600' : 'text-red-600'}">
+                            ${t.tipo === 'entrada' ? '+' : '-'} R$ ${t.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}
+                        </td>
+                    </tr>
+                `).join('') 
+                : `<tr><td colspan="3" class="text-center py-6 text-gray-500 font-bold">Nenhum lançamento registrado hoje.</td></tr>`;
+
             cont.innerHTML = `
-                <div class="card mb-4">
-                    <button onclick="abrirModalTransacao()" class="btn-principal px-4 py-2 rounded-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <button onclick="abrirModalTransacao()" class="btn-principal px-6 py-2 rounded-lg font-bold shadow">
                         + Novo Lançamento
                     </button>
+                    <div class="bg-white px-6 py-2 rounded-lg shadow border border-gray-200">
+                        <span class="text-gray-500 text-sm font-bold uppercase">Faturamento do dia:</span>
+                        <span class="text-xl font-black text-green-600 ml-2">R$ ${faturamento.toLocaleString('pt-BR',{minimumFractionDigits:2})}</span>
+                    </div>
                 </div>
 
-                <div class="card">
-                    <p><b>Faturamento do dia:</b> 
-                        R$ ${faturamento.toLocaleString('pt-BR',{minimumFractionDigits:2})}
-                    </p>
-                    <button class="bg-red-500 text-white px-4 py-2 rounded mt-4">
-                        Fechar Caixa
+                <div class="card mb-4">
+                    <h3 class="font-bold text-gray-800 mb-4 text-lg border-b pb-2">Lançamentos de Hoje</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="p-3 border-b text-xs text-gray-600 uppercase font-black rounded-tl-lg">Descrição</th>
+                                <th class="p-3 border-b text-xs text-gray-600 uppercase font-black">Método</th>
+                                <th class="p-3 border-b text-xs text-gray-600 uppercase font-black text-right rounded-tr-lg">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhasCaixa}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button class="bg-red-500 hover:bg-red-600 transition text-white font-bold px-8 py-3 rounded-xl shadow" onclick="fecharCaixaDia()">
+                        Fechar Caixa do Dia
                     </button>
                 </div>
             `;
@@ -1104,7 +1135,12 @@
                     transacoes = await res.json();
                     
                     fecharModal();
-                    atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                    
+                    if (document.getElementById('modulo-titulo').innerText === 'Caixa') {
+                        navegarModulo('caixa');
+                    } else {
+                        atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                    }
                 } catch(error) {
                     mostrarPopup('Erro', 'Não foi possível salvar a transação.');
                 }
@@ -2193,3 +2229,14 @@ window.atualizarStatusFila = async function(id, novoStatus) {
         mostrarPopup('❌ Erro', 'Erro de comunicação com o servidor.');
     }
 };
+
+window.fecharCaixaDia = function() {
+        if(confirm("Deseja realmente fechar o caixa de hoje? Os lançamentos continuarão salvos e visíveis na visão de Auditoria e Financeiro.")) {
+            document.getElementById('conteudo-dinamico').innerHTML = `
+                <div class="card text-center py-16">
+                    <h2 class="text-3xl font-black text-green-600 mb-2">✅ Caixa Fechado</h2>
+                    <p class="text-gray-500 font-bold">O caixa do dia foi encerrado com sucesso.</p>
+                </div>
+            `;
+        }
+    };
