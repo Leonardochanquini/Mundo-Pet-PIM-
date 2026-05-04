@@ -85,8 +85,11 @@ db.serialize(() => {
             especialidade TEXT,
             veterinario TEXT,
             obs TEXT,
+            status TEXT DEFAULT 'Agendado',
             FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
-        )`);
+        )`, () => {
+            db.run(`ALTER TABLE agenda ADD COLUMN status TEXT DEFAULT 'Agendado'`, (err) => {});
+        });
         db.run(`CREATE TABLE IF NOT EXISTS clientes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         clinic_id INTEGER,
@@ -388,6 +391,14 @@ app.put('/api/clientes/:id', (req, res) => {
         if (err) return res.status(500).json({ error: "Erro ao atualizar cliente." });
         
         registrarAuditoria(req.headers['x-clinic-id'], req.headers['x-usuario-nome'] || 'Desconhecido', `Editou o campo ${campo} do cliente ID: ${req.params.id}`);
+        res.json({ success: true });
+    });
+});
+
+app.put('/api/agenda/status/:id', (req, res) => {
+    const { status } = req.body;
+    db.run(`UPDATE agenda SET status = ? WHERE id = ?`, [status, req.params.id], function(err) {
+        if (err) return res.status(500).json({ error: "Erro ao atualizar status na agenda." });
         res.json({ success: true });
     });
 });

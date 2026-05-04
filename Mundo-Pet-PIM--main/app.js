@@ -598,7 +598,73 @@
                 setTimeout(window.renderizarCalendario, 0);
             }
 
-            else if(mod === 'clientes') {
+             else if(mod === 'fila') {
+                tit.innerText = "Fila de Atendimento (Hoje)";
+                actions.innerHTML = ``;
+                
+                // Pega a data de hoje para bater com a do banco de dados (formato YYYY-MM-DD)
+                const dataHojeLocal = new Date();
+                const ano = dataHojeLocal.getFullYear();
+                const mes = String(dataHojeLocal.getMonth() + 1).padStart(2, '0');
+                const dia = String(dataHojeLocal.getDate()).padStart(2, '0');
+                const dataHojeFormatada = `${ano}-${mes}-${dia}`;
+
+                // Filtra os agendamentos deixando apenas os do dia de hoje
+                let filaHoje = agendamentos.filter(a => a.data === dataHojeFormatada);
+
+                // Ordena pelo horário (mais cedo para mais tarde)
+                filaHoje.sort((a, b) => (a.hora > b.hora) ? 1 : -1);
+
+                // Construtor do botão de seleção de status com cores dinâmicas
+                const renderStatusOptions = (id, statusAtual) => {
+                    const statuses = ['Agendado', 'Já chegou', 'Aguardando', 'Em atendimento', 'Finalizado'];
+                    let options = statuses.map(s => `<option value="${s}" ${statusAtual === s ? 'selected' : ''}>${s}</option>`).join('');
+                    
+                    let cor = statusAtual === 'Finalizado' ? 'bg-green-100 text-green-800' : 
+                              statusAtual === 'Em atendimento' ? 'bg-blue-100 text-blue-800' : 
+                              statusAtual === 'Já chegou' ? 'bg-yellow-100 text-yellow-800' : 
+                              statusAtual === 'Aguardando' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800';
+
+                    return `<select onchange="atualizarStatusFila(${id}, this.value)" class="p-2 border rounded-lg text-sm font-bold cursor-pointer ${cor} outline-none">${options}</select>`;
+                };
+
+                // Monta as linhas da tabela html
+                const trs = filaHoje.length > 0 ? filaHoje.map(a => {
+                    const infoVet = (a.tipo === 'Consulta' || a.tipo === 'Retorno') && a.veterinario ? `<br><span class="text-xs text-blue-600 font-bold mt-1 inline-block">👨‍⚕️ ${a.veterinario}</span>` : '';
+                    return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="font-black text-blue-600 text-lg">${a.hora}</td>
+                        <td class="font-bold text-gray-800">${a.cliente}</td>
+                        <td class="font-semibold text-gray-600">🐶 ${a.pet}</td>
+                        <td>
+                            <span class="bg-gray-200 px-3 py-1 rounded-full text-xs font-bold text-gray-700 uppercase">${a.tipo}</span>
+                            ${infoVet}
+                        </td>
+                        <td>${renderStatusOptions(a.id, a.status || 'Agendado')}</td>
+                    </tr>
+                `}).join('') : `<tr><td colspan="5" class="text-center text-gray-500 py-8 font-bold">Nenhum agendamento marcado para o dia de hoje.</td></tr>`;
+
+                // Injeta na tela
+                cont.innerHTML = `
+                    <div class="card overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="p-4 border-b text-gray-500 uppercase text-xs font-black">Horário</th>
+                                    <th class="p-4 border-b text-gray-500 uppercase text-xs font-black">Cliente</th>
+                                    <th class="p-4 border-b text-gray-500 uppercase text-xs font-black">Pet</th>
+                                    <th class="p-4 border-b text-gray-500 uppercase text-xs font-black">Tipo / Veterinário</th>
+                                    <th class="p-4 border-b text-gray-500 uppercase text-xs font-black">Status do Paciente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${trs}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                } else if(mod === 'clientes') {
                 tit.innerText = "Clientes";
 
                 cont.innerHTML = `
@@ -636,25 +702,6 @@
                     </div>
                 `;
                 carregarPets();
-            }
-
-            else if(mod === 'fila') {
-                tit.innerText = "Fila de Atendimento";
-
-                cont.innerHTML = `
-                    <div class="card">
-                        <table>
-                            <thead><tr><th>Pet</th><th>Hora</th><th>Status</th></tr></thead>
-                            <tbody>
-                                <tr>
-                                    <td>Rex</td>
-                                    <td>14:00</td>
-                                    <td>Aguardando</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                `;
             }
 
            else if(mod === 'caixa') {
@@ -2123,3 +2170,26 @@ async function editarCampoCliente(id, campo) {
         }
     }
 }
+
+window.atualizarStatusFila = async function(id, novoStatus) {
+    try {
+        const res = await fetch(`http://localhost:8080/api/agenda/status/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ status: novoStatus })
+        });
+        
+        if (res.ok) {
+            // Atualiza o dado em memória para o front-end
+            const item = agendamentos.find(a => a.id === id);
+            if(item) item.status = novoStatus;
+            
+            // Recarrega apenas a tela da fila para atualizar as cores instantaneamente
+            navegarModulo('fila'); 
+        } else {
+            mostrarPopup('❌ Erro', 'Não foi possível atualizar o status do paciente.');
+        }
+    } catch(e) {
+        mostrarPopup('❌ Erro', 'Erro de comunicação com o servidor.');
+    }
+};
