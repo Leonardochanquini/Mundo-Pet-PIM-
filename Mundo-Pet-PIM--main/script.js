@@ -36,9 +36,12 @@ db.serialize(() => {
         email TEXT UNIQUE,
         senha TEXT,
         role TEXT,
+        especialidade TEXT,
         status TEXT DEFAULT 'Ativo',
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
-    )`);
+    )`, () => {
+        db.run(`ALTER TABLE usuarios ADD COLUMN especialidade TEXT`, (err) => {});
+    });
 
     db.run(`CREATE TABLE IF NOT EXISTS transacoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,6 +103,20 @@ db.serialize(() => {
         pets TEXT,
         FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
     )`);
+    db.run(`CREATE TABLE IF NOT EXISTS prontuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clinic_id INTEGER,
+        agendamento_id INTEGER,
+        cliente TEXT,
+        pet TEXT,
+        data TEXT,
+        veterinario TEXT,
+        peso TEXT,
+        sintomas TEXT,
+        diagnostico TEXT,
+        prescricao TEXT,
+        FOREIGN KEY (clinic_id) REFERENCES clinicas(id)
+    )`);
     });
 
 // --- FUNÇÃO INTERNA DE AUDITORIA ---
@@ -140,8 +157,8 @@ app.post('/api/assinatura-completa', (req, res) => {
         [clinicaId, 'Admin Master', '', clinica.emailAdmin, clinica.senhaAdmin, 'Administrador', 'Ativo'], function(err) {
             
             if(colaboradores && colaboradores.length > 0) {
-                const stmt = db.prepare(`INSERT INTO usuarios (clinic_id, nome, cpf, email, senha, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-                colaboradores.forEach(c => stmt.run([clinicaId, c.nome, c.cpf, c.email, '123456', c.cargo, 'Ativo']));
+                const stmt = db.prepare(`INSERT INTO usuarios (clinic_id, nome, cpf, email, senha, role, status, especialidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+                colaboradores.forEach(c => stmt.run([clinicaId, c.nome, c.cpf, c.email, '123456', c.cargo, 'Ativo', c.especialidade || null]));
                 stmt.finalize();
             }
 
@@ -164,14 +181,13 @@ app.get('/api/auditoria/:clinica_id', (req, res) => {
 // --- ROTAS DE COLABORADORES ---
 
 app.post('/api/colaborador', (req, res) => {
-    const { nome, cpf, email, senha, cargo, clinica_id } = req.body;
+    const { nome, cpf, email, senha, cargo, clinica_id, especialidade } = req.body;
     db.get(`SELECT email FROM usuarios WHERE email = ?`, [email], (err, row) => {
         if (err) return res.status(500).json({ error: "Erro interno no servidor." });
         if (row) return res.status(400).json({ error: "E-mail já cadastrado no sistema." });
         
-        db.run(`INSERT INTO usuarios (clinic_id, nome, cpf, email, senha, role, status) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
-        [clinica_id, nome, cpf, email, senha, cargo, 'Ativo'], function(err) {
-            if (err) return res.status(500).json({ error: "Erro ao cadastrar colaborador." });
+        db.run(`INSERT INTO usuarios (clinic_id, nome, cpf, email, senha, role, status, especialidade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
+        [clinica_id, nome, cpf, email, senha, cargo, 'Ativo', especialidade || null], function(err) {
             
             registrarAuditoria(clinica_id, req.headers['x-usuario-nome'] || 'Desconhecido', `Cadastrou o colaborador: ${nome} (${cargo})`);
             res.json({ success: true, message: "Colaborador cadastrado com sucesso!", id: this.lastID });
@@ -180,9 +196,9 @@ app.post('/api/colaborador', (req, res) => {
 });
 
 app.put('/api/colaborador/:id', (req, res) => {
-    const { nome, cpf, email, cargo } = req.body;
-    db.run(`UPDATE usuarios SET nome = ?, cpf = ?, email = ?, role = ? WHERE id = ?`,
-        [nome, cpf, email, cargo, req.params.id], err => {
+    const { nome, cpf, email, cargo, especialidade } = req.body;
+    db.run(`UPDATE usuarios SET nome = ?, cpf = ?, email = ?, role = ?, especialidade = ? WHERE id = ?`,
+        [nome, cpf, email, cargo, especialidade || null, req.params.id], err => {
             if (err) return res.status(500).json({ error: "Erro ao atualizar." });
             
             registrarAuditoria(req.headers['x-clinic-id'], req.headers['x-usuario-nome'] || 'Desconhecido', `Atualizou os dados do colaborador ID: ${req.params.id}`);
@@ -201,7 +217,7 @@ app.put('/api/colaborador/:id/status', (req, res) => {
 });
 
 app.get('/api/colaboradores/:clinica_id', (req, res) => {
-    db.all(`SELECT id, nome, cpf, email, role as cargo, status FROM usuarios WHERE clinic_id = ?`, [req.params.clinica_id], (err, rows) => {
+    db.all(`SELECT id, nome, cpf, email, role as cargo, status, especialidade FROM usuarios WHERE clinic_id = ?`, [req.params.clinica_id], (err, rows) => {
         if (err) return res.status(500).json({ error: "Erro ao buscar colaboradores." });
         res.json(rows.map(r => ({ ...r, ultimoAcesso: 'Hoje' })));
     });
@@ -400,6 +416,24 @@ app.put('/api/agenda/status/:id', (req, res) => {
     db.run(`UPDATE agenda SET status = ? WHERE id = ?`, [status, req.params.id], function(err) {
         if (err) return res.status(500).json({ error: "Erro ao atualizar status na agenda." });
         res.json({ success: true });
+    });
+});
+
+// --- ROTAS DE PRONTUÁRIOS ---
+app.get('/api/prontuarios/:clinica_id', (req, res) => {
+    db.all(`SELECT * FROM prontuarios WHERE clinic_id = ? ORDER BY id DESC`, [req.params.clinica_id], (err, rows) => {
+        if (err) return res.status(500).json({ error: "Erro ao buscar prontuários." });
+        res.json(rows);
+    });
+});
+
+app.post('/api/prontuarios', (req, res) => {
+    const { clinic_id, agendamento_id, cliente, pet, data, veterinario, peso, sintomas, diagnostico, prescricao } = req.body;
+    db.run(`INSERT INTO prontuarios (clinic_id, agendamento_id, cliente, pet, data, veterinario, peso, sintomas, diagnostico, prescricao) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+    [clinic_id, agendamento_id, cliente, pet, data, veterinario, peso, sintomas, diagnostico, prescricao], function(err) {
+        if (err) return res.status(500).json({ error: "Erro ao salvar prontuário." });
+        registrarAuditoria(clinic_id, req.headers['x-usuario-nome'] || 'Desconhecido', `Registrou prontuário para o pet ${pet}`);
+        res.json({ success: true, message: "Prontuário salvo!", id: this.lastID });
     });
 });
 

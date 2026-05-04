@@ -15,26 +15,62 @@
         let estoque = [];
         let transacoes = [];
         let agendamentos = [];
+        let prontuarios = [];
 
         async function sincronizarDados() {
             if (!clinicaId) return;
-
             try {
-                const [colabRes, transRes, estRes, agendaRes] = await Promise.all([
+                // 1. Adicionado o fetch de clientes na mesma chamada
+                const [colabRes, transRes, estRes, agendaRes, pronRes, cliRes] = await Promise.all([
                     fetch(`http://localhost:8080/api/colaboradores/${clinicaId}`),
                     fetch(`http://localhost:8080/api/transacoes/${clinicaId}`),
                     fetch(`http://localhost:8080/api/estoque/${clinicaId}`),
-                    fetch(`http://localhost:8080/api/agenda/${clinicaId}`).catch(() => null)
+                    fetch(`http://localhost:8080/api/agenda/${clinicaId}`).catch(() => null),
+                    fetch(`http://localhost:8080/api/prontuarios/${clinicaId}`).catch(() => null),
+                    fetch(`http://localhost:8080/api/clientes/${clinicaId}`).catch(() => null)
                 ]);
 
-                if (colabRes && colabRes.ok) equipe = await colabRes.json();
-                if (transRes && transRes.ok) transacoes = await transRes.json();
-                if (estRes && estRes.ok) estoque = await estRes.json();
-                if (agendaRes && agendaRes.ok) agendamentos = await agendaRes.json();
+                let mudouRecepcao = false;
 
-            } catch (e) {
-                console.error("Erro ao sincronizar dados:", e);
-            }
+                if (colabRes && colabRes.ok) equipe = await colabRes.json();
+                if (estRes && estRes.ok) estoque = await estRes.json();
+                if (pronRes && pronRes.ok) prontuarios = await pronRes.json();
+                
+                // 2. Compara os dados novos com os antigos; só sinaliza mudança se o dado realmente alterou
+                if (transRes && transRes.ok) {
+                    const novTr = await transRes.json();
+                    if (JSON.stringify(novTr) !== JSON.stringify(transacoes)) { transacoes = novTr; mudouRecepcao = true; }
+                }
+                if (agendaRes && agendaRes.ok) {
+                    const novAg = await agendaRes.json();
+                    if (JSON.stringify(novAg) !== JSON.stringify(agendamentos)) { agendamentos = novAg; mudouRecepcao = true; }
+                }
+                if (cliRes && cliRes.ok) {
+                    const novCli = await cliRes.json();
+                    if (JSON.stringify(novCli) !== JSON.stringify(window.clientesLista || [])) { window.clientesLista = novCli; mudouRecepcao = true; }
+                }
+
+                // 3. Atualiza as abas da Recepção automaticamente para todos os colaboradores em tempo real
+                if (mudouRecepcao && clinicaLogada && clinicaLogada.role === 'Recepção') {
+                    const modAtivo = document.querySelector('.sidebar-item.active');
+                    if (modAtivo) {
+                        const nomeMod = modAtivo.innerText;
+                        if (nomeMod.includes('Dashboard')) navegarModulo('recepcao-dashboard');
+                        else if (nomeMod.includes('Fila')) navegarModulo('fila');
+                        else if (nomeMod.includes('Caixa')) navegarModulo('caixa');
+                        else if (nomeMod.includes('Relatórios')) navegarModulo('relatorios');
+                        else if (nomeMod.includes('Agenda') && typeof window.renderizarCalendario === 'function') window.renderizarCalendario();
+                        
+                        // Atualiza as tabelas de clientes e pets apenas se o usuário não estiver digitando na barra de busca (evita bugar a digitação)
+                        else if (nomeMod.includes('Clientes') && document.getElementById('busca-cliente')?.value === '') {
+                            if (typeof renderClientes === 'function') renderClientes(window.clientesLista);
+                        }
+                        else if (nomeMod.includes('Pets') && document.getElementById('busca-pet')?.value === '') {
+                            if (typeof renderPets === 'function') renderPets(window.clientesLista);
+                        }
+                    }
+                }
+            } catch (e) { console.error("Erro ao sincronizar dados:", e); }
         }
 
         function mascaraMoeda(i) {
@@ -577,7 +613,10 @@
                         
                         // Verifica se tem agendamento neste dia
                         const dataFormatada = `${window.anoAtual}-${String(window.mesAtual + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                        const qtdAgendamentos = agendamentos.filter(a => a.data === dataFormatada).length;
+                        const qtdAgendamentos = agendamentos.filter(a => {
+                            if (clinicaLogada.role === 'Veterinário' && a.veterinario !== clinicaLogada.nome) return false;
+                            return a.data === dataFormatada;
+                        }).length;
                         const badge = qtdAgendamentos > 0 ? `<div class="mt-1 bg-blue-100 text-blue-800 text-[10px] rounded-full px-2 py-0.5 inline-block font-bold">${qtdAgendamentos} agend.</div>` : '';
 
                         htmlDias += `
@@ -606,7 +645,10 @@
                 // Função para exibir tudo marcado no dia clicado
                 window.abrirModalAgendamentosDoDia = function(dia, mes, ano) {
                     const dataFormatada = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-                    const agendamentosDoDia = agendamentos.filter(a => a.data === dataFormatada);
+                    const agendamentosDoDia = agendamentos.filter(a => {
+                        if (clinicaLogada.role === 'Veterinário' && a.veterinario !== clinicaLogada.nome) return false;
+                        return a.data === dataFormatada;
+                    });
                     
                     let htmlLista = '';
                     if(agendamentosDoDia.length === 0) {
@@ -646,7 +688,7 @@
                             <h3 id="mes-ano-display" class="font-bold text-lg min-w-[150px] text-center text-gray-800"></h3>
                             <button onclick="window.mudarMes(1)" class="px-3 py-1 bg-white border border-gray-300 hover:bg-gray-100 rounded font-bold text-gray-600">&gt;</button>
                         </div>
-                        <button onclick="abrirModalAgendamento()" class="btn-principal px-4 py-2 rounded-lg font-bold shadow-sm">+ Novo Agendamento</button>
+                        ${clinicaLogada.role === 'Veterinário' ? '' : '<button onclick="abrirModalAgendamento()" class="btn-principal px-4 py-2 rounded-lg font-bold shadow-sm">+ Novo Agendamento</button>'}
                     </div>
                     <div class="card">
                         <div class="grid grid-cols-7 gap-2 text-center font-bold text-gray-400 text-xs uppercase mb-2">
@@ -876,6 +918,67 @@
                         }).catch(e => console.error("Erro ao carregar clientes para o relatório", e));
                 }
             }
+
+            else if(mod === 'prontuario') {
+                tit.innerText = "Prontuários Médicos";
+                actions.innerHTML = `<button onclick="abrirModalProntuario()" class="btn-principal px-6 py-2 rounded-xl font-bold shadow">+ Prontuário Avulso</button>`;
+                
+                const meusProntuarios = prontuarios.filter(p => p.veterinario === clinicaLogada.nome);
+                
+                // --- PARTE DE IDENTIFICAÇÃO E VÍNCULO ---
+                const hojeLocal = new Date();
+                const dataHojeFormatada = hojeLocal.getFullYear() + '-' + String(hojeLocal.getMonth() + 1).padStart(2, '0') + '-' + String(hojeLocal.getDate()).padStart(2, '0');
+                const pacientesHoje = agendamentos.filter(a => a.veterinario === clinicaLogada.nome && a.data === dataHojeFormatada && a.status !== 'Finalizado');
+
+                let optionsAgendamentos = '<option value="">Selecione o paciente aguardando...</option>';
+                pacientesHoje.forEach(a => {
+                    optionsAgendamentos += `<option value="${a.id}" data-cliente="${a.cliente}" data-pet="${a.pet}">🕒 ${a.hora} - 🐾 ${a.pet} (Tutor: ${a.cliente})</option>`;
+                });
+
+                let htmlVinculo = `
+                    <div class="card mb-6 border-l-4 border-purple-500 shadow-sm">
+                        <h3 class="text-lg font-bold text-gray-800 mb-1">Identificação e Vínculo Rápido</h3>
+                        <p class="text-xs text-gray-500 mb-4">Selecione o paciente do dia para iniciar o atendimento médico.</p>
+                        <div class="flex gap-4 items-end">
+                            <div class="flex-grow">
+                                <select id="prontuario-vinculo-rapido" class="input-pet">
+                                    ${optionsAgendamentos}
+                                </select>
+                            </div>
+                            <button onclick="abrirModalProntuarioVinculado()" class="btn-principal px-6 py-2 rounded-xl font-bold h-[42px]">Iniciar Atendimento</button>
+                        </div>
+                    </div>
+                `;
+                // ----------------------------------------
+
+                let htmlLista = meusProntuarios.length > 0 ? meusProntuarios.map(p => `
+                    <div class="card mb-4 border-l-4 border-blue-500 shadow-sm">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800">🐾 ${p.pet} <span class="text-xs text-gray-500 font-normal ml-1">(Tutor: ${p.cliente})</span></h4>
+                                <p class="text-xs text-gray-400 font-bold mt-1">DATA DO ATENDIMENTO: ${p.data}</p>
+                            </div>
+                            <span class="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1 rounded-full text-xs font-black">PESO: ${p.peso || 'N/A'} kg</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mt-3">
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                <p class="text-xs font-black text-gray-500 uppercase mb-1">Sintomas / Queixa</p>
+                                <p class="text-sm text-gray-700">${p.sintomas || 'Não relatado'}</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                <p class="text-xs font-black text-gray-500 uppercase mb-1">Diagnóstico Clínico</p>
+                                <p class="text-sm text-gray-700">${p.diagnostico || 'Sem diagnóstico formal'}</p>
+                            </div>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-lg mt-3 border border-blue-100">
+                            <p class="text-xs font-black text-blue-800 uppercase mb-1">Prescrição Médica (Receita)</p>
+                            <p class="text-sm text-blue-900 whitespace-pre-wrap font-semibold">${p.prescricao || '-'}</p>
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-center py-12"><p class="text-gray-400 font-bold text-lg">Nenhum histórico de prontuário registrado.</p></div>';
+
+                cont.innerHTML = `<div class="max-w-4xl mx-auto">${htmlVinculo} <h3 class="font-bold text-gray-700 mb-4 text-lg border-b pb-2">Histórico de Prontuários</h3> ${htmlLista}</div>`;
+            }
         }
 
         async function carregarAuditoria() {
@@ -971,16 +1074,19 @@
                         </div>
                         <div>
                             <label class="text-xs font-bold text-gray-500 mb-1 block">Cargo</label>
-                            <select id="new-colab-cargo" class="input-pet">
+                            <select id="new-colab-cargo" class="input-pet" onchange="document.getElementById('edit-colab-esp-container').style.display = this.value === 'Veterinário' ? 'block' : 'none'">
                                 <option value="Administrador" ${u?.cargo === 'Administrador' ? 'selected' : ''}>Administrador</option>
                                 <option value="Veterinário" ${u?.cargo === 'Veterinário' ? 'selected' : ''}>Veterinário</option>
                                 <option value="Recepção" ${u?.cargo === 'Recepção' ? 'selected' : ''}>Recepção</option>
                             </select>
                         </div>
                     </div>
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail Institucional</label>
-                        <input id="new-colab-email" value="${u?.email || ''}" type="email" placeholder="nome@mundopet.com" class="input-pet">
+                    <div id="edit-colab-esp-container" style="display: ${u?.cargo === 'Veterinário' ? 'block' : 'none'};">
+                        <label class="text-xs font-bold text-gray-500 mb-1 block">Especialidade (Apenas Veterinários)</label>
+                        <select id="new-colab-especialidade" class="input-pet">
+                            <option value="Clínica Geral" ${u?.especialidade === 'Clínica Geral' ? 'selected' : ''}>Clínica Geral</option>
+                            <option value="Cardiologia" ${u?.especialidade === 'Cardiologia' ? 'selected' : ''}>Cardiologia</option>
+                        </select>
                     </div>
                     ${!u ? `
                     <div>
@@ -991,11 +1097,15 @@
             `;
 
             document.getElementById('modal-confirmar').onclick = async () => {
+                const cargoSelecionado = document.getElementById('new-colab-cargo').value;
+                const especialidadeSelecionada = cargoSelecionado === 'Veterinário' ? document.getElementById('new-colab-especialidade').value : null;
+
                 const dados = {
                     nome: document.getElementById('new-colab-nome').value,
                     cpf: document.getElementById('new-colab-cpf').value,
-                    cargo: document.getElementById('new-colab-cargo').value,
-                    email: document.getElementById('new-colab-email').value
+                    cargo: cargoSelecionado,
+                    email: document.getElementById('new-colab-email').value,
+                    especialidade: especialidadeSelecionada
                 };
 
                 if (!dados.nome || !dados.cpf || !dados.email) return mostrarPopup('⚠️', 'Preencha nome, CPF e email.');
@@ -1469,8 +1579,15 @@
                         <input id="novo-colab-nome" placeholder="Ex: João da Silva" class="input-pet mb-2">
                         <div class="grid grid-cols-2 gap-3 mb-2">
                             <input id="novo-colab-cpf" onkeyup="mascaraCPF(this)" placeholder="CPF" class="input-pet">
-                            <select id="novo-colab-cargo" class="input-pet">
+                            <select id="novo-colab-cargo" class="input-pet" onchange="document.getElementById('novo-colab-esp-container').style.display = this.value === 'Veterinário' ? 'block' : 'none'">
                                 <option value="">Cargo...</option><option value="Veterinário">Veterinário</option><option value="Recepção">Recepção</option><option value="Administrador">Administrador</option>
+                            </select>
+                        </div>
+                        <div id="novo-colab-esp-container" style="display: none;" class="mb-2">
+                            <select id="novo-colab-especialidade" class="input-pet">
+                                <option value="">Selecione a Especialidade...</option>
+                                <option value="Clínica Geral">Clínica Geral</option>
+                                <option value="Cardiologia">Cardiologia</option>
                             </select>
                         </div>
                         <input id="novo-colab-email" type="email" placeholder="E-mail" class="input-pet mb-2">
@@ -1496,10 +1613,12 @@
             const cpf = document.getElementById('novo-colab-cpf').value.trim();
             const cargo = document.getElementById('novo-colab-cargo').value.trim();
             const email = document.getElementById('novo-colab-email').value.trim();
+            const especialidade = cargo === 'Veterinário' ? document.getElementById('novo-colab-especialidade').value : null;
 
             if (!nome || !cpf || !cargo || !email) return mostrarPopup('⚠️', 'Preencha os dados.');
+            if (cargo === 'Veterinário' && !especialidade) return mostrarPopup('⚠️', 'Preencha a especialidade do veterinário.');
             
-            colaboradoresCheckout.push({ nome, cpf, cargo, email });
+            colaboradoresCheckout.push({ nome, cpf, cargo, email, especialidade });
             renderizarColaboradores();
         }
 
@@ -2356,3 +2475,119 @@ window.fecharCaixaDia = function() {
             `;
         }
     };
+
+    window.abrirModalProntuario = function() {
+    const hojeLocal = new Date();
+    const dataHojeFormatada = hojeLocal.getFullYear() + '-' + String(hojeLocal.getMonth() + 1).padStart(2, '0') + '-' + String(hojeLocal.getDate()).padStart(2, '0');
+    
+    // Filtra pacientes marcados para este vet HOJE
+    const meusAgendamentos = agendamentos.filter(a => a.veterinario === clinicaLogada.nome && a.data === dataHojeFormatada);
+    
+    let optionsAgendamentos = '<option value="">Atendimento avulso (Preencher manual)</option>';
+    meusAgendamentos.forEach(a => {
+        optionsAgendamentos += `<option value="${a.id}" data-cliente="${a.cliente}" data-pet="${a.pet}">[${a.hora}] - ${a.pet} (Tutor: ${a.cliente})</option>`;
+    });
+
+    document.getElementById('modal-titulo').innerText = "Registro de Prontuário Clínico";
+    document.getElementById('modal-body').innerHTML = `
+        <div class="space-y-4">
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <label class="text-xs font-black text-blue-800 uppercase mb-1 block">Vincular Paciente Agendado Hoje</label>
+                <select id="prontuario-agendamento" class="input-pet border-blue-300 font-bold text-blue-900" onchange="
+                    const opt = this.options[this.selectedIndex];
+                    if(opt.value) {
+                        document.getElementById('prontuario-cliente').value = opt.getAttribute('data-cliente');
+                        document.getElementById('prontuario-pet').value = opt.getAttribute('data-pet');
+                    }
+                ">
+                    ${optionsAgendamentos}
+                </select>
+                <p class="text-xs text-blue-600 mt-1">Selecionar o paciente mudará seu status para 'Finalizado' na fila.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs font-bold text-gray-500 mb-1 block">Tutor (Cliente) *</label>
+                    <input id="prontuario-cliente" class="input-pet" required>
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500 mb-1 block">Nome do Pet *</label>
+                    <input id="prontuario-pet" class="input-pet" required>
+                </div>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Peso Atual (kg)</label>
+                <input id="prontuario-peso" type="number" step="0.1" class="input-pet" placeholder="Ex: 5.5">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Sintomas / Histórico / Queixa</label>
+                <textarea id="prontuario-sintomas" class="input-pet" rows="2" placeholder="Descreva os sintomas..."></textarea>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Diagnóstico</label>
+                <textarea id="prontuario-diagnostico" class="input-pet" rows="2" placeholder="Diagnóstico clínico detectado..."></textarea>
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Prescrição (Receita / Medicações)</label>
+                <textarea id="prontuario-prescricao" class="input-pet" rows="3" placeholder="Medicamentos, posologia, recomendações..."></textarea>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('modal-confirmar').onclick = async () => {
+        const agendamento_id = document.getElementById('prontuario-agendamento').value;
+        const payload = {
+            clinic_id: clinicaId,
+            agendamento_id: agendamento_id || null,
+            cliente: document.getElementById('prontuario-cliente').value.trim(),
+            pet: document.getElementById('prontuario-pet').value.trim(),
+            data: new Date().toLocaleDateString('pt-BR'),
+            veterinario: clinicaLogada.nome,
+            peso: document.getElementById('prontuario-peso').value.trim(),
+            sintomas: document.getElementById('prontuario-sintomas').value.trim(),
+            diagnostico: document.getElementById('prontuario-diagnostico').value.trim(),
+            prescricao: document.getElementById('prontuario-prescricao').value.trim()
+        };
+
+        if (!payload.cliente || !payload.pet) return mostrarPopup('⚠️ Atenção', 'O Cliente e o Pet são obrigatórios.');
+
+        try {
+            const res = await fetch('http://localhost:8080/api/prontuarios', {
+                method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                if (agendamento_id && typeof atualizarStatusFila === 'function') {
+                    await atualizarStatusFila(agendamento_id, 'Finalizado');
+                }
+                const pronRes = await fetch(`http://localhost:8080/api/prontuarios/${clinicaId}`);
+                if (pronRes.ok) prontuarios = await pronRes.json();
+
+                mostrarPopup('✅ Sucesso', 'Prontuário gerado com sucesso!');
+                fecharModal();
+                navegarModulo('prontuario');
+            } else { mostrarPopup('❌ Erro', 'Falha ao salvar o prontuário no banco.'); }
+        } catch (e) { mostrarPopup('🔌 Erro', 'Conexão com a porta 8080 falhou.'); }
+    };
+    document.getElementById('modal-container').style.display = 'flex';
+};
+
+window.abrirModalProntuarioVinculado = function() {
+    const select = document.getElementById('prontuario-vinculo-rapido');
+    
+    if(!select.value) {
+        mostrarPopup('⚠️ Atenção', 'Selecione um paciente aguardando na fila para vincular!');
+        return;
+    }
+    
+    // Abre o modal nativo
+    abrirModalProntuario();
+    
+    // Preenche automaticamente o select dentro do modal e dispara o evento para carregar os dados
+    setTimeout(() => {
+        const modalSelect = document.getElementById('prontuario-agendamento');
+        if(modalSelect) {
+            modalSelect.value = select.value;
+            modalSelect.dispatchEvent(new Event('change'));
+        }
+    }, 50);
+};
