@@ -1082,21 +1082,29 @@
                         </div>
                     </div>
                     <div id="edit-colab-esp-container" style="display: ${u?.cargo === 'Veterinário' ? 'block' : 'none'};">
-                        <label class="text-xs font-bold text-gray-500 mb-1 block">Especialidade (Apenas Veterinários)</label>
-                        <select id="new-colab-especialidade" class="input-pet">
-                            <option value="Clínica Geral" ${u?.especialidade === 'Clínica Geral' ? 'selected' : ''}>Clínica Geral</option>
-                            <option value="Cardiologia" ${u?.especialidade === 'Cardiologia' ? 'selected' : ''}>Cardiologia</option>
-                        </select>
-                    </div>
-                    ${!u ? `
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 mb-1 block">Senha Provisória</label>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Especialidade (Apenas Veterinários)</label>
+                <select id="new-colab-especialidade" class="input-pet">
+                    <option value="Clínica Geral" ${u?.especialidade === 'Clínica Geral' ? 'selected' : ''}>Clínica Geral</option>
+                    <option value="Cardiologia" ${u?.especialidade === 'Cardiologia' ? 'selected' : ''}>Cardiologia</option>
+                </select>
+            </div>
+            
+            <!-- INÍCIO DA CORREÇÃO: Adicionando o campo de E-mail -->
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">E-mail de Acesso *</label>
+                <input id="new-colab-email" type="email" value="${u?.email || ''}" placeholder="Ex: email@clinica.com" class="input-pet">
+            </div>
+            <!-- FIM DA CORREÇÃO -->
+
+            ${!u ? `
+            <div>
+                <label class="text-xs font-bold text-gray-500 mb-1 block">Senha Provisória</label>
                         <input id="new-colab-senha" type="password" placeholder="••••••••" class="input-pet">
                     </div>` : ''}
                 </div>
             `;
 
-            document.getElementById('modal-confirmar').onclick = async () => {
+           document.getElementById('modal-confirmar').onclick = async () => {
                 const cargoSelecionado = document.getElementById('new-colab-cargo').value;
                 const especialidadeSelecionada = cargoSelecionado === 'Veterinário' ? document.getElementById('new-colab-especialidade').value : null;
 
@@ -1120,6 +1128,8 @@
                         if (res.ok) {
                             Object.assign(u, dados);
                             mostrarPopup('✅ Sucesso', 'Colaborador atualizado!');
+                        } else {
+                            mostrarPopup('❌ Erro', 'Falha ao atualizar colaborador.');
                         }
                     } else {
                         const senha = document.getElementById('new-colab-senha').value;
@@ -1316,20 +1326,6 @@
                 let valInput = document.getElementById('new-trans-val').value;
                 if(!valInput) return alert("Preencha o valor!");
                 
-                if(res.ok) {
-                    // Busca os dados novos do servidor imediatamente
-                    const resAtualizada = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
-                    transacoes = await resAtualizada.json();
-                    
-                    fecharModal();
-                    
-                    // Atualiza a tela que o usuário está vendo
-                    if (clinicaLogada.role === 'Recepção') {
-                        navegarModulo('recepcao-dashboard'); 
-                    } else {
-                        atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
-                    }
-                };
                 let numLimpo = valInput.replace(/\D/g, ''); 
                 let valorFloat = parseFloat(numLimpo) / 100;
 
@@ -1347,28 +1343,37 @@
                 };
 
                 try {
+                    let res;
                     if(editId) {
-                        await fetch(`http://localhost:8080/api/transacoes/${editId}`, {
+                        res = await fetch(`http://localhost:8080/api/transacoes/${editId}`, {
                             method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(payload)
                         });
                     } else {
-                        await fetch(`http://localhost:8080/api/transacoes`, {
+                        res = await fetch(`http://localhost:8080/api/transacoes`, {
                             method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(payload)
                         });
                     }
                     
-                    const res = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
-                    transacoes = await res.json();
-                    
-                    fecharModal();
-                    
-                    if (document.getElementById('modulo-titulo').innerText === 'Caixa') {
-                        navegarModulo('caixa');
+                    if (res.ok) {
+                        // Busca os dados novos do servidor imediatamente após o sucesso
+                        const resAtualizada = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
+                        transacoes = await resAtualizada.json();
+                        
+                        fecharModal();
+                        
+                        // Atualiza a tela correspondente de forma inteligente
+                        if (document.getElementById('modulo-titulo').innerText === 'Caixa') {
+                            navegarModulo('caixa');
+                        } else if (clinicaLogada.role === 'Recepção') {
+                            navegarModulo('recepcao-dashboard'); 
+                        } else {
+                            atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                        }
                     } else {
-                        atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                        mostrarPopup('Erro', 'Falha ao processar a transação no servidor.');
                     }
                 } catch(error) {
-                    mostrarPopup('Erro', 'Não foi possível salvar a transação.');
+                    mostrarPopup('Erro', 'Não foi possível salvar a transação. Verifique a conexão.');
                 }
             };
             document.getElementById('modal-container').style.display = 'flex';
