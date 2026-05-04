@@ -172,7 +172,7 @@
                     irPara('app-container');
                     document.getElementById('clinica-tag').innerText = clinicaLogada.nomeClinica || `Clínica ${clinicaId}`;
                     
-                    if (clinicaLogada.role === 'Administrador') {
+                    if (clinicaLogada.role === 'Administrador' || clinicaLogada.role === 'Recepção') {
                         document.getElementById('menu-configuracoes').classList.remove('hidden');
                     } else {
                         document.getElementById('menu-configuracoes').classList.add('hidden');
@@ -407,77 +407,99 @@
             // ================= RECEPÇÃO =================
 
             else if(mod === 'recepcao-dashboard') {
-            tit.innerText = "Dashboard - Recepção";
+                tit.innerText = "Dashboard - Recepção";
 
-            const hoje = new Date().toLocaleDateString('pt-BR');
+                // 1. FATURAMENTO (Conectado com a aba Caixa)
+                // O formato de data em transacoes é DD/MM
+                const hojeTransacoes = formatDt(new Date());
+                const transHoje = transacoes.filter(t => t.data === hojeTransacoes);
 
-            // ===== DADOS =====
-            const transHoje = transacoes.filter(t => t.data === hoje);
+                const faturamento = transHoje
+                    .filter(t => t.tipo === 'entrada')
+                    .reduce((a,b)=>a+b.valor, 0);
 
-            const faturamento = transHoje
-                .filter(t => t.tipo === 'entrada')
-                .reduce((a,b)=>a+b.valor, 0);
+                // 2. AGENDAMENTOS E FILA (Conectado com as abas Agenda e Fila)
+                // O formato de data em agenda é YYYY-MM-DD
+                const dataHojeLocal = new Date();
+                const ano = dataHojeLocal.getFullYear();
+                const mes = String(dataHojeLocal.getMonth() + 1).padStart(2, '0');
+                const dia = String(dataHojeLocal.getDate()).padStart(2, '0');
+                const dataHojeFormatada = `${ano}-${mes}-${dia}`;
 
-            // Simulação simples (até você integrar backend real dessas partes)
-            const totalAgendamentos = transHoje.length; 
-            const emAtendimento = Math.floor(totalAgendamentos * 0.4);
-            const aguardando = totalAgendamentos - emAtendimento;
-            const lembretes = Math.floor(totalAgendamentos * 0.2);
+                // Filtra apenas os agendamentos reais de hoje do banco
+                const agendaHoje = agendamentos.filter(a => a.data === dataHojeFormatada);
 
-            // ===== GRÁFICO SIMPLES =====
-            const valoresPorHora = {};
-            transHoje.forEach(t => {
-                const hora = new Date().getHours(); // simplificado
-                valoresPorHora[hora] = (valoresPorHora[hora] || 0) + t.valor;
-            });
+                const totalAgendamentos = agendaHoje.length;
+                const emAtendimento = agendaHoje.filter(a => a.status === 'Em atendimento').length;
+                const aguardando = agendaHoje.filter(a => a.status === 'Aguardando' || a.status === 'Já chegou').length;
+                const concluidos = agendaHoje.filter(a => a.status === 'Finalizado').length;
 
-            const labels = Object.keys(valoresPorHora);
-            const dados = Object.values(valoresPorHora);
-
-            cont.innerHTML = `
-                <div class="grid grid-cols-4 gap-4 mb-6">
-                    <div class="card">
-                        <b>Agendamentos Hoje</b><br>${totalAgendamentos}
-                    </div>
-                    <div class="card">
-                        <b>Em Atendimento</b><br>${emAtendimento}
-                    </div>
-                    <div class="card">
-                        <b>Aguardando</b><br>${aguardando}
-                    </div>
-                    <div class="card">
-                        <b>Lembretes</b><br>${lembretes}
-                    </div>
-                </div>
-
-                <div class="card mb-6">
-                    <h3 class="font-bold mb-2">Faturamento Diário</h3>
-                    <p class="text-2xl font-black text-green-600">
-                        R$ ${faturamento.toLocaleString('pt-BR',{minimumFractionDigits:2})}
-                    </p>
-                </div>
-
-                <div class="card">
-                    <h3 class="font-bold mb-4">Faturamento por Hora</h3>
-                    <canvas id="graficoRecepcao" height="100"></canvas>
-                </div>
-            `;
-
-            setTimeout(() => {
-                const ctx = document.getElementById('graficoRecepcao');
-
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: labels.length ? labels : ['Sem dados'],
-                        datasets: [{
-                            label: 'R$',
-                            data: dados.length ? dados : [0]
-                        }]
-                    }
+                // 3. GRÁFICO REAL (Agendamentos por Hora baseados na Agenda)
+                const atendimentosPorHora = {};
+                agendaHoje.forEach(a => {
+                    const hora = a.hora.substring(0, 2) + "h"; // Extrai a hora (ex: "08h")
+                    atendimentosPorHora[hora] = (atendimentosPorHora[hora] || 0) + 1;
                 });
-            }, 100);
-        }
+
+                const labels = Object.keys(atendimentosPorHora).sort();
+                const dados = labels.map(l => atendimentosPorHora[l]);
+
+                cont.innerHTML = `
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="card border-l-4 border-blue-500">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Agendamentos Hoje</p>
+                            <h3 class="text-2xl font-black text-blue-600">${totalAgendamentos}</h3>
+                        </div>
+                        <div class="card border-l-4 border-yellow-500">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Aguardando</p>
+                            <h3 class="text-2xl font-black text-yellow-600">${aguardando}</h3>
+                        </div>
+                        <div class="card border-l-4 border-orange-500">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Em Atendimento</p>
+                            <h3 class="text-2xl font-black text-orange-600">${emAtendimento}</h3>
+                        </div>
+                        <div class="card border-l-4 border-green-500">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Finalizados</p>
+                            <h3 class="text-2xl font-black text-green-600">${concluidos}</h3>
+                        </div>
+                    </div>
+
+                    <div class="card mb-6">
+                        <h3 class="font-bold mb-2 text-gray-600 uppercase text-sm">Faturamento Diário (Caixa)</h3>
+                        <p class="text-3xl font-black text-green-600">
+                            R$ ${faturamento.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+                        </p>
+                    </div>
+
+                    <div class="card">
+                        <h3 class="font-bold mb-4 text-gray-800">Fluxo de Agendamentos por Hora</h3>
+                        <canvas id="graficoRecepcao" height="80"></canvas>
+                    </div>
+                `;
+
+                setTimeout(() => {
+                    const ctx = document.getElementById('graficoRecepcao');
+                    // Destrói o gráfico anterior para evitar sobreposição ao trocar de abas
+                    if(window.chartRecepcao) window.chartRecepcao.destroy();
+
+                    window.chartRecepcao = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels.length ? labels : ['Sem agendamentos'],
+                            datasets: [{
+                                label: 'Qtd. de Agendamentos',
+                                data: dados.length ? dados : [0],
+                                backgroundColor: '#3b82f6',
+                                borderRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                        }
+                    });
+                }, 100);
+            }
 
              else if(mod === 'agenda') {
                 tit.innerText = "Agenda";
@@ -764,15 +786,54 @@
         }
 
             else if(mod === 'relatorios') {
-                tit.innerText = "Relatórios";
+                tit.innerText = "Relatórios da Recepção";
 
+                // Pega a data de hoje formatada igual ao banco de dados (YYYY-MM-DD)
+                const hoje = new Date();
+                const dataHojeFormatada = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+                
+                // Calcula atendimentos com base nos dados do servidor
+                const atendimentosHoje = agendamentos.filter(a => a.data === dataHojeFormatada).length;
+                const totalAtendimentos = agendamentos.length;
+
+                // Calcula faturamento e ticket médio conectando com o array de transações
+                const entradas = transacoes.filter(t => t.tipo === 'entrada');
+                const faturamentoTotal = entradas.reduce((acc, t) => acc + t.valor, 0);
+                const ticketMedio = entradas.length > 0 ? (faturamentoTotal / entradas.length) : 0;
+
+                // Calcula o número de clientes cadastrados
+                let qtdClientes = window.clientesLista ? window.clientesLista.length : 0;
+
+                // Mantém a sua lógica visual usando as classes do Tailwind
                 cont.innerHTML = `
-                    <div class="card">
-                        <p><b>Atendimentos:</b> 30</p>
-                        <p><b>Ticket Médio:</b> R$ 120</p>
-                        <p><b>Inadimplência:</b> 2 clientes</p>
+                    <div class="grid grid-cols-3 gap-6 mb-8">
+                        <div class="card border-l-4 border-blue-500">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Atendimentos (Hoje)</p>
+                            <h3 class="text-2xl font-black text-blue-600">${atendimentosHoje}</h3>
+                            <p class="text-xs text-gray-500 mt-1">Total geral: ${totalAtendimentos}</p>
+                        </div>
+                        <div class="card border-l-4 border-green-500">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Faturamento Total</p>
+                            <h3 class="text-2xl font-black text-green-600">R$ ${faturamentoTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h3>
+                            <p class="text-xs text-gray-500 mt-1">Ticket Médio: R$ ${ticketMedio.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                        </div>
+                        <div class="card border-l-4 border-purple-500">
+                            <p class="text-xs font-bold text-gray-400 uppercase">Clientes Cadastrados</p>
+                            <h3 class="text-2xl font-black text-purple-600">${qtdClientes}</h3>
+                            <p class="text-xs text-gray-500 mt-1">Base de dados ativa</p>
+                        </div>
                     </div>
                 `;
+                
+                // Força o carregamento dos clientes via API se ainda não tiverem sido carregados na sessão atual da Recepção
+                if (!window.clientesLista) {
+                    fetch('http://localhost:8080/api/clientes/' + clinicaId)
+                        .then(res => res.json())
+                        .then(clientes => {
+                            window.clientesLista = clientes;
+                            navegarModulo('relatorios'); // Recarrega os números dinamicamente na tela
+                        }).catch(e => console.error("Erro ao carregar clientes para o relatório", e));
+                }
             }
         }
 
@@ -1104,6 +1165,20 @@
                 let valInput = document.getElementById('new-trans-val').value;
                 if(!valInput) return alert("Preencha o valor!");
                 
+                if(res.ok) {
+                    // Busca os dados novos do servidor imediatamente
+                    const resAtualizada = await fetch(`http://localhost:8080/api/transacoes/${clinicaId}`);
+                    transacoes = await resAtualizada.json();
+                    
+                    fecharModal();
+                    
+                    // Atualiza a tela que o usuário está vendo
+                    if (clinicaLogada.role === 'Recepção') {
+                        navegarModulo('recepcao-dashboard'); 
+                    } else {
+                        atualizarDOMFinanceiro(document.getElementById('conteudo-dinamico'));
+                    }
+                };
                 let numLimpo = valInput.replace(/\D/g, ''); 
                 let valorFloat = parseFloat(numLimpo) / 100;
 
